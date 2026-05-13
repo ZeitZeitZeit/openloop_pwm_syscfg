@@ -1,0 +1,12 @@
+{
+    "interruptInfo" : [
+        {
+            "interruptName": "INT_myMCUSignalSight0_transferLayer_SCI_RX",
+            "interruptHandler": "INT_myMCUSignalSight0_transferLayer_SCI_RX_ISR"
+        },
+        {
+            "interruptName": "INT_myMCUSignalSight0_transferLayer_SCI_TX",
+            "interruptHandler": "INT_myMCUSignalSight0_transferLayer_SCI_TX_ISR"
+        }
+    ]
+}

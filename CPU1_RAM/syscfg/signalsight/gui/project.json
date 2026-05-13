@@ -1,0 +1,21 @@
+{
+    "template": "Application v3",
+    "description": "GUI Composer v3 Template",
+    "version": "3.4.0",
+    "window": {
+        "frame": false
+    },
+    "projectName": "myMCUSignalSight0",
+    "applicationName": "myMCUSignalSight0",
+    "applicationIcon": "",
+    "windowIcon": "",
+    "splashImage": "",
+    "tiBrandingEnabled": true,
+    "disableAutoConnect": false,
+    "vendorName": "",
+    "technologyName": "",
+    "customLicense": "",
+    "customManifest": "",
+    "customAppInfo": "",
+    "nosplash": true
+}

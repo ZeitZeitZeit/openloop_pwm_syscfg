@@ -1,0 +1,161 @@
+/**
+ * These arguments were used when this file was generated. They will be automatically applied on subsequent loads
+ * via the GUI or CLI. Run CLI with '--help' for additional information on how to override these arguments.
+ * @cliArgs --device "F28004x" --part "F28004x_100PZ" --package "F28004x_100PZ" --context "system" --product "C2000WARE@26.00.00.00"
+ * @v2CliArgs --device "TMS320F280049C" --package "100PZ" --context "system" --product "C2000WARE@26.00.00.00"
+ * @versions {"tool":"1.27.0+4565"}
+ */
+
+/**
+ * Import the modules used in this configuration.
+ */
+const epwm             = scripting.addModule("/driverlib/epwm.js", {}, false);
+const epwm1            = epwm.addInstance();
+const epwm2            = epwm.addInstance();
+const epwm3            = epwm.addInstance();
+const inputxbar        = scripting.addModule("/driverlib/inputxbar.js", {}, false);
+const inputxbar1       = inputxbar.addInstance();
+const inputxbar_input  = scripting.addModule("/driverlib/inputxbar_input.js");
+const inputxbar_input1 = inputxbar_input.addInstance();
+const inputxbar_input2 = inputxbar_input.addInstance();
+const sync             = scripting.addModule("/driverlib/sync.js");
+const signalsight      = scripting.addModule("/utilities/transfer/signalsight.js", {}, false);
+const signalsight1     = signalsight.addInstance();
+
+/**
+ * Write custom configuration values to the imported modules.
+ */
+epwm1.$name                                                      = "myEPWM1";
+epwm1.epwmTimebase_hsClockDiv                                    = "EPWM_HSCLOCK_DIVIDER_1";
+epwm1.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_ZERO      = "EPWM_AQ_OUTPUT_HIGH";
+epwm1.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_ZERO      = "EPWM_AQ_OUTPUT_HIGH";
+epwm1.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_UP_CMPA   = "EPWM_AQ_OUTPUT_LOW";
+epwm1.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_UP_CMPB   = "EPWM_AQ_OUTPUT_LOW";
+epwm1.epwmEventTrigger_enableInterrupt                           = true;
+epwm1.epwmTimebase_syncOutPulseMode                              = "EPWM_SYNC_OUT_PULSE_ON_COUNTER_ZERO";
+epwm1.epwmTimebase_period                                        = 5000;
+epwm1.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_DOWN_CMPA = "EPWM_AQ_OUTPUT_HIGH";
+epwm1.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_UP_CMPB   = "EPWM_AQ_OUTPUT_LOW";
+epwm1.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_DOWN_CMPB = "EPWM_AQ_OUTPUT_HIGH";
+epwm1.epwmTimebase_counterMode                                   = "EPWM_COUNTER_MODE_UP_DOWN";
+epwm1.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_DOWN_CMPB = "EPWM_AQ_OUTPUT_HIGH";
+epwm1.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_UP_CMPA   = "EPWM_AQ_OUTPUT_LOW";
+epwm1.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_DOWN_CMPA = "EPWM_AQ_OUTPUT_HIGH";
+epwm1.epwmDeadband_polarityFED                                   = "EPWM_DB_POLARITY_ACTIVE_LOW";
+epwm1.epwmDeadband_enableRED                                     = true;
+epwm1.epwmDeadband_enableFED                                     = true;
+epwm1.epwmDeadband_delayRED                                      = 240;
+epwm1.epwmDeadband_delayFED                                      = 240;
+epwm1.epwmCounterCompare_cmpA                                    = 1000;
+epwm1.epwmCounterCompare_cmpB                                    = 500;
+epwm1.epwmEventTrigger_interruptSource                           = "EPWM_INT_TBCTR_ZERO_OR_PERIOD";
+epwm1.epwmEventTrigger_interruptEventCount                       = "2";
+epwm1.epwmEventTrigger_EPWM_SOC_A_triggerEnable                  = true;
+epwm1.epwmEventTrigger_EPWM_SOC_A_triggerSource                  = "EPWM_SOC_TBCTR_ZERO_OR_PERIOD";
+epwm1.epwmEventTrigger_EPWM_SOC_A_triggerEventPrescalar          = "2";
+epwm1.epwm.$assign                                               = "EPWM1";
+epwm1.epwm.epwm_aPin.$assign                                     = "GPIO0";
+epwm1.epwm.epwm_bPin.$assign                                     = "GPIO1";
+
+epwm2.epwmEventTrigger_interruptSource                           = "EPWM_INT_TBCTR_ZERO";
+epwm2.epwmTimebase_hsClockDiv                                    = "EPWM_HSCLOCK_DIVIDER_1";
+epwm2.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_ZERO      = "EPWM_AQ_OUTPUT_HIGH";
+epwm2.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_UP_CMPA   = "EPWM_AQ_OUTPUT_LOW";
+epwm2.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_ZERO      = "EPWM_AQ_OUTPUT_HIGH";
+epwm2.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_UP_CMPB   = "EPWM_AQ_OUTPUT_LOW";
+epwm2.epwmEventTrigger_enableInterrupt                           = true;
+epwm2.epwmEventTrigger_interruptEventCount                       = "1";
+epwm2.$name                                                      = "myEPWM2";
+epwm2.copyUse                                                    = true;
+epwm2.copyFrom                                                   = "myEPWM1";
+epwm2.epwmTimebase_periodLoadEvent                               = "EPWM_SHADOW_LOAD_MODE_SYNC";
+epwm2.epwmTimebase_phaseEnable                                   = true;
+epwm2.epwmTimebase_syncOutPulseMode                              = "EPWM_SYNC_OUT_PULSE_ON_EPWMxSYNCIN";
+epwm2.epwmTimebase_period                                        = 5000;
+epwm2.epwmTimebase_phaseShift                                    = 3334;
+epwm2.epwmTimebase_counterMode                                   = "EPWM_COUNTER_MODE_UP_DOWN";
+epwm2.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_DOWN_CMPA = "EPWM_AQ_OUTPUT_HIGH";
+epwm2.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_UP_CMPB   = "EPWM_AQ_OUTPUT_LOW";
+epwm2.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_DOWN_CMPB = "EPWM_AQ_OUTPUT_HIGH";
+epwm2.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_DOWN_CMPB = "EPWM_AQ_OUTPUT_HIGH";
+epwm2.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_UP_CMPA   = "EPWM_AQ_OUTPUT_LOW";
+epwm2.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_DOWN_CMPA = "EPWM_AQ_OUTPUT_HIGH";
+epwm2.epwmDeadband_polarityFED                                   = "EPWM_DB_POLARITY_ACTIVE_LOW";
+epwm2.epwmDeadband_enableRED                                     = true;
+epwm2.epwmDeadband_enableFED                                     = true;
+epwm2.epwmDeadband_delayRED                                      = 240;
+epwm2.epwmDeadband_delayFED                                      = 240;
+epwm2.epwmCounterCompare_cmpA                                    = 1000;
+epwm2.epwmCounterCompare_cmpB                                    = 500;
+epwm2.epwm.$assign                                               = "EPWM2";
+epwm2.epwm.epwm_aPin.$assign                                     = "GPIO2";
+epwm2.epwm.epwm_bPin.$assign                                     = "GPIO3";
+
+epwm3.epwmTimebase_hsClockDiv                                    = "EPWM_HSCLOCK_DIVIDER_1";
+epwm3.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_UP_CMPA   = "EPWM_AQ_OUTPUT_LOW";
+epwm3.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_ZERO      = "EPWM_AQ_OUTPUT_HIGH";
+epwm3.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_UP_CMPB   = "EPWM_AQ_OUTPUT_LOW";
+epwm3.epwmEventTrigger_enableInterrupt                           = true;
+epwm3.epwmEventTrigger_interruptEventCount                       = "1";
+epwm3.$name                                                      = "myEPWM3";
+epwm3.copyUse                                                    = true;
+epwm3.copyFrom                                                   = "myEPWM2";
+epwm3.epwmTimebase_periodLoadEvent                               = "EPWM_SHADOW_LOAD_MODE_SYNC";
+epwm3.epwmTimebase_phaseEnable                                   = true;
+epwm3.epwmTimebase_period                                        = 5000;
+epwm3.epwmTimebase_phaseShift                                    = 6667;
+epwm3.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_ZERO      = "EPWM_AQ_OUTPUT_HIGH";
+epwm3.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_DOWN_CMPA = "EPWM_AQ_OUTPUT_HIGH";
+epwm3.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_UP_CMPB   = "EPWM_AQ_OUTPUT_LOW";
+epwm3.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_DOWN_CMPB = "EPWM_AQ_OUTPUT_HIGH";
+epwm3.epwmTimebase_counterMode                                   = "EPWM_COUNTER_MODE_UP_DOWN";
+epwm3.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_DOWN_CMPB = "EPWM_AQ_OUTPUT_HIGH";
+epwm3.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_UP_CMPA   = "EPWM_AQ_OUTPUT_LOW";
+epwm3.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_DOWN_CMPA = "EPWM_AQ_OUTPUT_HIGH";
+epwm3.epwmDeadband_enableRED                                     = true;
+epwm3.epwmDeadband_enableFED                                     = true;
+epwm3.epwmDeadband_polarityFED                                   = "EPWM_DB_POLARITY_ACTIVE_LOW";
+epwm3.epwmDeadband_delayRED                                      = 240;
+epwm3.epwmDeadband_delayFED                                      = 240;
+epwm3.epwmCounterCompare_cmpA                                    = 1000;
+epwm3.epwmCounterCompare_cmpB                                    = 500;
+epwm3.epwm.$assign                                               = "EPWM3";
+epwm3.epwm.epwm_aPin.$assign                                     = "GPIO4";
+epwm3.epwm.epwm_bPin.$assign                                     = "GPIO5";
+
+inputxbar1.$name = "myINPUTXBAR5";
+
+inputxbar_input1.$name          = "myINPUTXBARINPUT0";
+inputxbar_input1.inputxbarInput = "XBAR_INPUT5";
+inputxbar_input1.inputxbarGpio  = "GPIO56";
+
+inputxbar_input2.$name          = "myINPUTXBARINPUT1";
+inputxbar_input2.inputxbarInput = "XBAR_INPUT6";
+inputxbar_input2.inputxbarGpio  = "GPIO56";
+
+signalsight1.$name                                            = "myMCUSignalSight0";
+signalsight1.bufferSize                                       = 50;
+signalsight1.exporter.comsLinkModule.loopback                 = scripting.forceWrite(false);
+signalsight1.exporter.comsLinkModule.wordLenght               = scripting.forceWrite("8");
+signalsight1.exporter.comsLinkModule.stop                     = scripting.forceWrite("ONE");
+signalsight1.exporter.comsLinkModule.parity                   = scripting.forceWrite("SCI_CONFIG_PAR_NONE");
+signalsight1.exporter.comsLinkModule.useFifo                  = scripting.forceWrite(true);
+signalsight1.exporter.comsLinkModule.txFifo                   = scripting.forceWrite("SCI_FIFO_TX0");
+signalsight1.exporter.comsLinkModule.useCase                  = scripting.forceWrite("ALL");
+signalsight1.exporter.comsLinkModule.sci.$assign              = "SCIA";
+signalsight1.exporter.comsLinkModule.sci.sci_rxPin.$assign    = "GPIO28";
+signalsight1.exporter.comsLinkModule.sci.sci_txPin.$assign    = "GPIO29";
+signalsight1.exporter.comsLinkModule.rxQual.$name             = "myGPIOQUAL0";
+signalsight1.exporter.comsLinkModule.txQual.$name             = "myGPIOQUAL1";
+signalsight1.exporter.comsLinkModule.sciTXInt.enableInterrupt = scripting.forceWrite(false);
+signalsight1.hash.$name                                       = "myHashTable0";
+signalsight1.hash.hashElements.create(9);
+signalsight1.hash.hashElements[0].$name                       = "svm_Ta";
+signalsight1.hash.hashElements[1].$name                       = "svm_Tb";
+signalsight1.hash.hashElements[2].$name                       = "svm_Tc";
+signalsight1.hash.hashElements[3].$name                       = "svm_Ualpha";
+signalsight1.hash.hashElements[4].$name                       = "svm_Ubeta";
+signalsight1.hash.hashElements[5].$name                       = "svm_d1";
+signalsight1.hash.hashElements[6].$name                       = "svm_d2";
+signalsight1.hash.hashElements[7].$name                       = "svm_d0";
+signalsight1.hash.hashElements[8].$name                       = "svm_Sector";

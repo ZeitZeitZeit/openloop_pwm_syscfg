@@ -1,0 +1,18 @@
+
+{
+    "name": "myMCUSignalSight0",
+    "chromium-args": "--ignore-certificate-errors --disable-web-security --user-data-dir --enable-features=SharedArrayBuffer",
+    "window": {
+        "title": "",
+        "frame": false,
+        "position": "center",
+        "width": 1280,
+        "height": 800,
+        "min_width": 600,
+        "min_height": 200,
+        "show_in_taskbar": true
+    },
+    "node-remote": "*://*/*",
+    "dependencies": {},
+    "devDependencies": {}
+}
