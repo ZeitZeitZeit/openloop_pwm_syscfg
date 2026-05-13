@@ -5,9 +5,10 @@
 "./syscfg/export/export_package.obj"
 "./syscfg/signalsight/signalsight.obj"
 "./syscfg/signalsight/signalsight_hash.obj"
-"./svm.obj"
+"./main.obj"
 "./device/device.obj"
 "./device/f28004x_codestartbranch.obj"
+"./pwm/svm/svm.obj"
 "../28004x_generic_ram_lnk.cmd"
 "C:/ti/c2000/C2000Ware_26_00_00_00/driverlib/f28004x/driverlib/ccs/Debug/driverlib.lib"
 -lc2000ware_libraries.cmd.genlibs

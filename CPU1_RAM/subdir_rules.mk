@@ -5,41 +5,41 @@
 SHELL = cmd.exe
 
 # Each subdirectory must supply rules for building sources it contributes
-build-1373552825: ../epwm_ex3_synchronization.syscfg
+build-799030566: ../epwm_sync_svm.syscfg
 	@echo 'SysConfig - building file: "$<"'
-	"C:/ti/ccs2050/ccs/utils/sysconfig_1.27.0/sysconfig_cli.bat" -s "C:/ti/c2000/C2000Ware_26_00_00_00/.metadata/sdk.json" -d "F28004x" -p "F28004x_100PZ" -r "F28004x_100PZ" --script "C:/Users/giv6hc/workspace_ccstheia/epwm_svm/epwm_ex3_synchronization.syscfg" -o "syscfg" --compiler ccs
+	"C:/ti/ccs2050/ccs/utils/sysconfig_1.27.0/sysconfig_cli.bat" -s "C:/ti/c2000/C2000Ware_26_00_00_00/.metadata/sdk.json" -d "F28004x" -p "F28004x_100PZ" -r "F28004x_100PZ" --script "C:/Users/giv6hc/workspace_ccstheia/epwm_svm/epwm_sync_svm.syscfg" -o "syscfg" --compiler ccs
 	@echo 'Finished building: "$<"'
 	@echo ' '
 
-syscfg/board.c: build-1373552825 ../epwm_ex3_synchronization.syscfg
-syscfg/board.h: build-1373552825
-syscfg/board.cmd.genlibs: build-1373552825
-syscfg/board.opt: build-1373552825
-syscfg/board.json: build-1373552825
-syscfg/pinmux.csv: build-1373552825
-syscfg/epwm.dot: build-1373552825
-syscfg/c2000ware_libraries.cmd.genlibs: build-1373552825
-syscfg/c2000ware_libraries.opt: build-1373552825
-syscfg/c2000ware_libraries.c: build-1373552825
-syscfg/c2000ware_libraries.h: build-1373552825
-syscfg/clocktree.h: build-1373552825
-syscfg/transfer.opt: build-1373552825
-syscfg/transfer_utils.h: build-1373552825
-syscfg/transfer_utils.c: build-1373552825
-syscfg/export/export.c: build-1373552825
-syscfg/export/export.h: build-1373552825
-syscfg/export/export_package.c: build-1373552825
-syscfg/export/export_package.h: build-1373552825
-syscfg/gui_setup.bat: build-1373552825
-syscfg/signalsight/signalsight.c: build-1373552825
-syscfg/signalsight/signalsight.h: build-1373552825
-syscfg/signalsight/signalsight_hash.c: build-1373552825
-syscfg/signalsight/signalsight_hash.h: build-1373552825
-syscfg/signalsight/gui/signalsight_hash.json: build-1373552825
-syscfg/signalsight/gui/index.html: build-1373552825
-syscfg/signalsight/gui/project.json: build-1373552825
-syscfg/signalsight/gui/package.json: build-1373552825
-syscfg: build-1373552825
+syscfg/board.c: build-799030566 ../epwm_sync_svm.syscfg
+syscfg/board.h: build-799030566
+syscfg/board.cmd.genlibs: build-799030566
+syscfg/board.opt: build-799030566
+syscfg/board.json: build-799030566
+syscfg/pinmux.csv: build-799030566
+syscfg/epwm.dot: build-799030566
+syscfg/c2000ware_libraries.cmd.genlibs: build-799030566
+syscfg/c2000ware_libraries.opt: build-799030566
+syscfg/c2000ware_libraries.c: build-799030566
+syscfg/c2000ware_libraries.h: build-799030566
+syscfg/clocktree.h: build-799030566
+syscfg/transfer.opt: build-799030566
+syscfg/transfer_utils.h: build-799030566
+syscfg/transfer_utils.c: build-799030566
+syscfg/export/export.c: build-799030566
+syscfg/export/export.h: build-799030566
+syscfg/export/export_package.c: build-799030566
+syscfg/export/export_package.h: build-799030566
+syscfg/gui_setup.bat: build-799030566
+syscfg/signalsight/signalsight.c: build-799030566
+syscfg/signalsight/signalsight.h: build-799030566
+syscfg/signalsight/signalsight_hash.c: build-799030566
+syscfg/signalsight/signalsight_hash.h: build-799030566
+syscfg/signalsight/gui/signalsight_hash.json: build-799030566
+syscfg/signalsight/gui/index.html: build-799030566
+syscfg/signalsight/gui/project.json: build-799030566
+syscfg/signalsight/gui/package.json: build-799030566
+syscfg: build-799030566
 
 syscfg/%.obj: ./syscfg/%.c $(GEN_OPTS) | $(GEN_FILES) $(GEN_MISC_FILES)
 	@echo 'C2000 Compiler - building file: "$<"'

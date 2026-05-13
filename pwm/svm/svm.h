@@ -163,5 +163,20 @@ if (x->T_c < 0.0f) x->T_c = 0.0f; else if (x->T_c > 0.96) x->T_c = 0.96f;
 
 }
 
+//
+// Open-loop wrapper API — implemented in svm.c
+//
+// SVM_openLoopInit: Pre-computes lookup tables and initializes the SVM struct.
+//   Udc            - DC bus voltage
+//   Ts             - Switching period
+//   magnitude      - Voltage magnitude for the reference vector
+//   sampleRes      - Number of samples per electrical cycle
+//
+// SVM_openLoopRun: Steps through the lookup table, runs SVM_EXEC, and
+//   updates SignalSight plot variables.  Returns duty cycles via pointers.
+//
+void SVM_openLoopInit(float Udc, float Ts, float magnitude, int sampleRes);
+void SVM_openLoopRun(float *dutyA, float *dutyB, float *dutyC);
+
 #endif /* _SVM_H_ */
 

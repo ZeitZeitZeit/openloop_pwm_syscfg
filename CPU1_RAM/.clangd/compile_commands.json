@@ -47,6 +47,11 @@
    {
       "directory" : "C:/Users/giv6hc/workspace_ccstheia/epwm_svm/CPU1_RAM",
       "command"   : "clang++ -I\"C:/Users/giv6hc/workspace_ccstheia/epwm_svm\" -I\"C:/ti/c2000/C2000Ware_26_00_00_00\" -I\"C:/Users/giv6hc/workspace_ccstheia/epwm_svm/device\" -I\"C:/ti/c2000/C2000Ware_26_00_00_00/driverlib/f28004x/driverlib/\" -I\"C:/ti/ccs2050/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include\" -DDEBUG -I\"C:/Users/giv6hc/workspace_ccstheia/epwm_svm/CPU1_RAM/syscfg\" -DF28004x=1 -I\"C:/ti/c2000/C2000Ware_26_00_00_00/utilities/transfer/source/\" -xc",
-      "file"      : "C:/Users/giv6hc/workspace_ccstheia/epwm_svm/svm.c"
+      "file"      : "C:/Users/giv6hc/workspace_ccstheia/epwm_svm/main.c"
+   },
+   {
+      "directory" : "C:/Users/giv6hc/workspace_ccstheia/epwm_svm/CPU1_RAM",
+      "command"   : "clang++ -I\"C:/Users/giv6hc/workspace_ccstheia/epwm_svm\" -I\"C:/ti/c2000/C2000Ware_26_00_00_00\" -I\"C:/Users/giv6hc/workspace_ccstheia/epwm_svm/device\" -I\"C:/ti/c2000/C2000Ware_26_00_00_00/driverlib/f28004x/driverlib/\" -I\"C:/ti/ccs2050/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include\" -DDEBUG -I\"C:/Users/giv6hc/workspace_ccstheia/epwm_svm/CPU1_RAM/syscfg\" -DF28004x=1 -I\"C:/ti/c2000/C2000Ware_26_00_00_00/utilities/transfer/source/\" -xc",
+      "file"      : "C:/Users/giv6hc/workspace_ccstheia/epwm_svm/pwm/svm/svm.c"
    }
 ]

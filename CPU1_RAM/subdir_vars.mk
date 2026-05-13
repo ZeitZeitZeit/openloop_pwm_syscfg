@@ -9,7 +9,7 @@ CMD_SRCS += \
 ../28004x_generic_ram_lnk.cmd 
 
 SYSCFG_SRCS += \
-../epwm_ex3_synchronization.syscfg 
+../epwm_sync_svm.syscfg 
 
 LIB_SRCS += \
 C:/ti/c2000/C2000Ware_26_00_00_00/driverlib/f28004x/driverlib/ccs/Debug/driverlib.lib 
@@ -22,7 +22,7 @@ C_SRCS += \
 ./syscfg/export/export_package.c \
 ./syscfg/signalsight/signalsight.c \
 ./syscfg/signalsight/signalsight_hash.c \
-../svm.c 
+../main.c 
 
 GEN_FILES += \
 ./syscfg/board.c \
@@ -47,7 +47,7 @@ C_DEPS += \
 ./syscfg/export/export_package.d \
 ./syscfg/signalsight/signalsight.d \
 ./syscfg/signalsight/signalsight_hash.d \
-./svm.d 
+./main.d 
 
 GEN_OPTS += \
 ./syscfg/board.opt \
@@ -62,7 +62,7 @@ OBJS += \
 ./syscfg/export/export_package.obj \
 ./syscfg/signalsight/signalsight.obj \
 ./syscfg/signalsight/signalsight_hash.obj \
-./svm.obj 
+./main.obj 
 
 GEN_MISC_FILES += \
 ./syscfg/board.h \
@@ -95,7 +95,7 @@ OBJS__QUOTED += \
 "syscfg\export\export_package.obj" \
 "syscfg\signalsight\signalsight.obj" \
 "syscfg\signalsight\signalsight_hash.obj" \
-"svm.obj" 
+"main.obj" 
 
 GEN_MISC_FILES__QUOTED += \
 "syscfg\board.h" \
@@ -125,7 +125,7 @@ C_DEPS__QUOTED += \
 "syscfg\export\export_package.d" \
 "syscfg\signalsight\signalsight.d" \
 "syscfg\signalsight\signalsight_hash.d" \
-"svm.d" 
+"main.d" 
 
 GEN_FILES__QUOTED += \
 "syscfg\board.c" \
@@ -140,7 +140,7 @@ GEN_FILES__QUOTED += \
 "syscfg\signalsight\signalsight_hash.c" 
 
 SYSCFG_SRCS__QUOTED += \
-"../epwm_ex3_synchronization.syscfg" 
+"../epwm_sync_svm.syscfg" 
 
 C_SRCS__QUOTED += \
 "./syscfg/board.c" \
@@ -150,6 +150,6 @@ C_SRCS__QUOTED += \
 "./syscfg/export/export_package.c" \
 "./syscfg/signalsight/signalsight.c" \
 "./syscfg/signalsight/signalsight_hash.c" \
-"../svm.c" 
+"../main.c" 
 
 

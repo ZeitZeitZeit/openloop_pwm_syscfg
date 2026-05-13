@@ -1,22 +1,23 @@
 //#############################################################################
 //
-// FILE:   svm.c
+// FILE:   main.c
 //
-// TITLE:  Open-Loop Space Vector Modulation (SVM) using ePWM with SysConfig
+// TITLE:  Open-Loop 3-Phase PWM Application using ePWM with SysConfig
 //
 //! \addtogroup driver_example_list
 //! <h1>ePWM Space Vector Modulation</h1>
 //!
-//! This example generates 3-phase PWM outputs using Space Vector Modulation.
-//! A fake electrical angle is incremented in the EPWM1 ISR to produce
-//! rotating voltage vectors in open-loop mode.
+//! This application generates 3-phase PWM outputs using a selectable
+//! modulation method. A fake electrical angle is incremented in the
+//! EPWM1 ISR to produce rotating voltage vectors in open-loop mode.
+//!
+//! The modulation module (e.g. SVM) is kept separate so it can be
+//! replaced with another method (e.g. SINPWM, DPWM) without
+//! modifying this file beyond the #include and function calls.
 //!
 //!  - ePWM1 drives Phase A (sync source, generates ISR)
 //!  - ePWM2 drives Phase B (synced to ePWM1)
 //!  - ePWM3 drives Phase C (synced to ePWM1)
-//!
-//! The SVM algorithm runs inside the EPWM1 ISR and updates CMPA for all
-//! three modules every PWM cycle.
 //!
 //! \b External \b Connections \n
 //! - GPIO0 EPWM1A (Phase A high-side)
@@ -30,7 +31,6 @@
 //! \b Watch \b Variables \n
 //! - mySvm.sector
 //! - mySvm.T_a, mySvm.T_b, mySvm.T_c
-//! - electrical_angle
 //
 //#############################################################################
 
@@ -41,40 +41,11 @@
 #include "device.h"
 #include "board.h"
 #include <signalsight/signalsight.h>
-#include "svm.h"
-#include <math.h>
 
 //
-// Defines
+// Modulation method — swap this header to use a different PWM strategy
 //
-#define MATH_PI             3.14159265f
-#define MATH_TWO_PI         6.283185307f
-#define SAMPLE_RESOLUTION   200          // 10kHz PWM / 50Hz = 200 samples per cycle
-
-//
-// Globals
-//
-SVM_DATA mySvm;
-
-int dataIndex = 0;
-float voltage_magnitude = 10.0f;        // Fake voltage amplitude
-
-//
-// Pre-computed lookup tables for one full electrical cycle
-//
-float alphaSnapshot[SAMPLE_RESOLUTION] = {0};
-float betaSnapshot[SAMPLE_RESOLUTION]  = {0};
-
-float svm_Ta = 0.0f;
-float svm_Tb = 0.0f;
-float svm_Tc = 0.0f;
-float svm_d1 = 0.0f;
-float svm_d2 = 0.0f;
-float svm_d0 = 0.0f;
-
-float svm_Ualpha = 0.0f;
-float svm_Ubeta = 0.0f;
-float svm_Sector = 0.0f;
+#include "pwm/svm/svm.h"
 
 //
 // Function Prototypes
@@ -122,27 +93,16 @@ void main(void)
     //
     Board_init();
 
-    //new
-    SIGNALSIGHT_init();
     //
+    // Initialize Signal Sight tool state
+    //
+    SIGNALSIGHT_init();
 
     //
-    // Initialize SVM data structure
+    // Initialize modulation module (open-loop SVM)
+    // Udc=24V, Ts=0.0001s, magnitude=10, 200 samples/cycle
     //
-    SVM_INIT(&mySvm);
-    mySvm.Udc = 24.0f;     // Set DC bus voltage
-    mySvm.T_s = 0.0001;     // Switching time
-    //
-    // Pre-compute one full electrical cycle of alpha/beta reference
-    //
-    int i;
-    float angle;
-    for(i = 0; i < SAMPLE_RESOLUTION; i++)
-    {
-        angle = ((float)i) * MATH_TWO_PI / ((float)SAMPLE_RESOLUTION);
-        alphaSnapshot[i] = voltage_magnitude * cosf(angle);
-        betaSnapshot[i]  = voltage_magnitude * sinf(angle);
-    }
+    SVM_openLoopInit(24.0f, 0.0001f, 10.0f, 200);
 
     //
     // Enable sync and clock to PWM
@@ -161,21 +121,20 @@ void main(void)
     ERTM;
 
     //
-    // IDLE loop. SVM math runs entirely inside the ISR.
+    // IDLE loop. Modulation math runs entirely inside the ISR.
     //
     while(1)
     {
-        //new
         SIGNALSIGHT_sendPlotData();
-        //
     }
 }
 
 //
 // epwm1ISR - ePWM 1 ISR
 //
-// Runs every PWM cycle. Generates a fake rotating angle, computes SVM
-// duty cycles, and writes CMPA values to all three ePWM modules.
+// Runs every PWM cycle. Generates a fake rotating angle, computes
+// duty cycles via the modulation module, and writes CMPA values to
+// all three ePWM modules.
 //
 __interrupt void epwm1ISR(void)
 {
@@ -185,44 +144,11 @@ __interrupt void epwm1ISR(void)
     GPIO_writePin(26, 1);
 
     //
-
+    // Run the modulation module — returns three duty cycles
     //
-    // =============================================
-    // FAKE MOTOR ANGLE GENERATOR (open-loop)
-    // =============================================
-    // Use pre-computed lookup table instead of real-time sinf/cosf
-    //
-    svm_Ualpha = alphaSnapshot[dataIndex];
-    svm_Ubeta  = betaSnapshot[dataIndex];
+    float dutyA, dutyB, dutyC;
+    SVM_openLoopRun(&dutyA, &dutyB, &dutyC);
 
-    mySvm.Us_alpha = svm_Ualpha;
-    mySvm.Us_beta  = svm_Ubeta;
-
-    if(dataIndex == SAMPLE_RESOLUTION - 1)
-    {
-        dataIndex = 0;
-    }
-    else
-    {
-        dataIndex++;
-    }
-
-    //
-    // =============================================
-    // RUN THE SVM MATH
-    // =============================================
-    //
-    SVM_EXEC(&mySvm);
-
-    svm_Ta = mySvm.T_a;
-    svm_Tb = mySvm.T_b;
-    svm_Tc = mySvm.T_c;
-    svm_d1 = mySvm.d_1;
-    svm_d2 = mySvm.d_2;
-    svm_d0 = mySvm.d_0;
-    
-    svm_Sector = mySvm.sector;
-    
     //
     // Decimate SignalSight capture to reduce UART data rate
     // Capture every 10th ISR = ~1kHz effective sample rate
@@ -243,14 +169,12 @@ __interrupt void epwm1ISR(void)
     // Convert duty cycle (0.0 to 0.96) into timer compare ticks
     //
     EPWM_setCounterCompareValue(myEPWM1_BASE, EPWM_COUNTER_COMPARE_A,
-                                (uint16_t)(mySvm.T_a * myEPWM1_TBPRD));
+                                (uint16_t)(dutyA * myEPWM1_TBPRD));
     EPWM_setCounterCompareValue(myEPWM2_BASE, EPWM_COUNTER_COMPARE_A,
-                                (uint16_t)(mySvm.T_b * myEPWM2_TBPRD));
+                                (uint16_t)(dutyB * myEPWM2_TBPRD));
     EPWM_setCounterCompareValue(myEPWM3_BASE, EPWM_COUNTER_COMPARE_A,
-                                (uint16_t)(mySvm.T_c * myEPWM3_TBPRD));
+                                (uint16_t)(dutyC * myEPWM3_TBPRD));
 
-    
-    
     //
     // Clear INT flag for this timer
     //
