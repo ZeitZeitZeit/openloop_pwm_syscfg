@@ -29,8 +29,8 @@
 //! - GPIO26 ISR timing toggle (optional)
 //!
 //! \b Watch \b Variables \n
-//! - mySvm.sector
-//! - mySvm.T_a, mySvm.T_b, mySvm.T_c
+//! - sopwm_m
+//! - sopwm_theta, sopwm_dutyA, sopwm_dutyB, sopwm_dutyC
 //
 //#############################################################################
 
@@ -45,7 +45,21 @@
 //
 // Modulation method — swap this header to use a different PWM strategy
 //
-#include "pwm/svm/svm.h"
+#include "pwm/sopwm/sopwm.h"
+
+// ---------------------------------------------------------------------------
+// SOPWM schedule parameters
+//   SOPWM_TBPRD : must match TBPRD configured in SysConfig for ePWM1/4/7
+//                 100 MHz / 50 kHz = 2000 counts
+//   SOPWM_N     : pulse number — 7, 9, 11, 13 or 15
+//   SOPWM_M_INIT: starting modulation index (main loop updates each fundamental)
+// ---------------------------------------------------------------------------
+#define SOPWM_TBPRD    2000U
+#define SOPWM_N        7U
+#define SOPWM_M_INIT   0.50f
+
+// Modulation index command — write from debugger or closed-loop controller
+float sopwm_m_cmd = SOPWM_M_INIT;
 
 //
 // Function Prototypes
@@ -98,11 +112,30 @@ void main(void)
     //
     SIGNALSIGHT_init();
 
+    // Static DMA channel config (trigger, burst, transfer, DST) is generated
+    // by SysConfig into Board_init() above — myDMA0/1/2 map to CH1/CH2/CH3.
+    // Point each channel's SRC to the initial active schedule buffer (index 0).
+    DMA_configAddresses(myDMA0_BASE,
+                        (const void *)myDMA0_DESTADDRESS,
+                        (const void *)&sopwm_sched[0][0][0]);
+    DMA_configAddresses(myDMA1_BASE,
+                        (const void *)myDMA1_DESTADDRESS,
+                        (const void *)&sopwm_sched[1][0][0]);
+    DMA_configAddresses(myDMA2_BASE,
+                        (const void *)myDMA2_DESTADDRESS,
+                        (const void *)&sopwm_sched[2][0][0]);
+
+    // Start all three DMA channels — they will auto-trigger on ePWM ZERO.
+    DMA_startChannel(myDMA0_BASE);
+    DMA_startChannel(myDMA1_BASE);
+    DMA_startChannel(myDMA2_BASE);
+
     //
-    // Initialize modulation module (open-loop SVM)
-    // Udc=24V, Ts=0.0001s, magnitude=10, 200 samples/cycle
+    // Pre-build BOTH double-buffers so DMA has valid data from cycle 0.
+    // (BuildSchedule alone only fills the inactive buffer; the active buffer
+    // would start uninitialized for the first 50 carrier cycles.)
     //
-    SVM_openLoopInit(24.0f, 0.0001f, 10.0f, 200);
+    SOPWM_InitSchedule(SOPWM_M_INIT, SOPWM_N, SOPWM_TBPRD);
 
     //
     // Enable sync and clock to PWM
@@ -121,10 +154,26 @@ void main(void)
     ERTM;
 
     //
-    // IDLE loop. Modulation math runs entirely inside the ISR.
+    // IDLE loop.
+    // Rebuild the SOPWM schedule once per fundamental cycle (every 1 ms at
+    // 1 kHz fundamental).  SOPWM_schedISR() sets sopwm_fund_tick at the
+    // carrier-cycle rollover so this runs at exactly the right rate.
     //
     while(1)
     {
+        if (sopwm_fund_tick)
+        {
+            sopwm_fund_tick = 0U;
+
+            // --- Update m here from closed-loop controller if needed ---
+            // sopwm_m_cmd = compute_m(Ualpha, Ubeta, Udc);
+
+            SOPWM_BuildSchedule(sopwm_m_cmd, SOPWM_N, SOPWM_TBPRD);
+            SOPWM_CommitSchedule();
+
+            SIGNALSIGHT_capturePlotData();
+        }
+
         SIGNALSIGHT_sendPlotData();
     }
 }
@@ -144,36 +193,27 @@ __interrupt void epwm1ISR(void)
     GPIO_writePin(26, 1);
 
     //
-    // Run the modulation module — returns three duty cycles
+    // Advance carrier-cycle index; set sopwm_fund_tick at fundamental boundary;
+    // swap double-buffer if SOPWM_CommitSchedule() was called by main loop.
+    // DMA loads CMPA/CMPB into ePWM1/4/7 shadow registers automatically —
+    // no manual EPWM_setCounterCompareValue() calls needed here.
     //
-    float dutyA, dutyB, dutyC;
-    SVM_openLoopRun(&dutyA, &dutyB, &dutyC);
+    SOPWM_schedISR();
 
-    //
-    // Decimate SignalSight capture to reduce UART data rate
-    // Capture every 10th ISR = ~1kHz effective sample rate
-    //
+    // After a fundamental rollover, re-point DMA SRC to the newly activated
+    // buffer so the next 50-cycle run reads the freshly built schedule.
+    if (sopwm_fund_tick)
     {
-        static int captureDiv = 0;
-        if(++captureDiv >= 10)
-        {
-            SIGNALSIGHT_capturePlotData();
-            captureDiv = 0;
-        }
+        DMA_configAddresses(myDMA0_BASE,
+                            (const void *)myDMA0_DESTADDRESS,
+                            (const void *)&sopwm_sched[0][sopwm_sched_active][0]);
+        DMA_configAddresses(myDMA1_BASE,
+                            (const void *)myDMA1_DESTADDRESS,
+                            (const void *)&sopwm_sched[1][sopwm_sched_active][0]);
+        DMA_configAddresses(myDMA2_BASE,
+                            (const void *)myDMA2_DESTADDRESS,
+                            (const void *)&sopwm_sched[2][sopwm_sched_active][0]);
     }
-
-    //
-    // =============================================
-    // UPDATE HARDWARE REGISTERS
-    // =============================================
-    // Convert duty cycle (0.0 to 0.96) into timer compare ticks
-    //
-    EPWM_setCounterCompareValue(myEPWM1_BASE, EPWM_COUNTER_COMPARE_A,
-                                (uint16_t)(dutyA * myEPWM1_TBPRD));
-    EPWM_setCounterCompareValue(myEPWM2_BASE, EPWM_COUNTER_COMPARE_A,
-                                (uint16_t)(dutyB * myEPWM2_TBPRD));
-    EPWM_setCounterCompareValue(myEPWM3_BASE, EPWM_COUNTER_COMPARE_A,
-                                (uint16_t)(dutyC * myEPWM3_TBPRD));
 
     //
     // Clear INT flag for this timer

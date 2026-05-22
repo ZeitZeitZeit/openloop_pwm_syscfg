@@ -110,7 +110,7 @@ main.obj: C:/ti/ccs2050/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/xloc
 main.obj: syscfg/transfer_utils.h
 main.obj: C:/ti/ccs2050/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/stdlib.h
 main.obj: syscfg/signalsight/signalsight_hash.h
-main.obj: ../pwm/svm/svm.h
+main.obj: ../pwm/sopwm/sopwm.h
 
 ../main.c:
 
@@ -332,5 +332,5 @@ C:/ti/ccs2050/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/stdlib.h:
 
 syscfg/signalsight/signalsight_hash.h:
 
-../pwm/svm/svm.h:
+../pwm/sopwm/sopwm.h:
 

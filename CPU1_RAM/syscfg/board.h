@@ -75,36 +75,36 @@ extern "C"
 #define myEPWM1_EPWMB_PIN_CONFIG GPIO_1_EPWM1_B
 
 //
-// EPWM2 -> myEPWM2 Pinmux
-//
-//
-// EPWM2_A - GPIO Settings
-//
-#define GPIO_PIN_EPWM2_A 2
-#define myEPWM2_EPWMA_GPIO 2
-#define myEPWM2_EPWMA_PIN_CONFIG GPIO_2_EPWM2_A
-//
-// EPWM2_B - GPIO Settings
-//
-#define GPIO_PIN_EPWM2_B 3
-#define myEPWM2_EPWMB_GPIO 3
-#define myEPWM2_EPWMB_PIN_CONFIG GPIO_3_EPWM2_B
-
-//
-// EPWM3 -> myEPWM3 Pinmux
+// EPWM3 -> myEPWM4 Pinmux
 //
 //
 // EPWM3_A - GPIO Settings
 //
 #define GPIO_PIN_EPWM3_A 4
-#define myEPWM3_EPWMA_GPIO 4
-#define myEPWM3_EPWMA_PIN_CONFIG GPIO_4_EPWM3_A
+#define myEPWM4_EPWMA_GPIO 4
+#define myEPWM4_EPWMA_PIN_CONFIG GPIO_4_EPWM3_A
 //
 // EPWM3_B - GPIO Settings
 //
 #define GPIO_PIN_EPWM3_B 5
-#define myEPWM3_EPWMB_GPIO 5
-#define myEPWM3_EPWMB_PIN_CONFIG GPIO_5_EPWM3_B
+#define myEPWM4_EPWMB_GPIO 5
+#define myEPWM4_EPWMB_PIN_CONFIG GPIO_5_EPWM3_B
+
+//
+// EPWM2 -> myEPWM7 Pinmux
+//
+//
+// EPWM2_A - GPIO Settings
+//
+#define GPIO_PIN_EPWM2_A 2
+#define myEPWM7_EPWMA_GPIO 2
+#define myEPWM7_EPWMA_PIN_CONFIG GPIO_2_EPWM2_A
+//
+// EPWM2_B - GPIO Settings
+//
+#define GPIO_PIN_EPWM2_B 3
+#define myEPWM7_EPWMB_GPIO 3
+#define myEPWM7_EPWMB_PIN_CONFIG GPIO_3_EPWM2_B
 
 //
 // SCIA -> myMCUSignalSight0_transferLayer_SCI Pinmux
@@ -124,12 +124,42 @@ extern "C"
 
 //*****************************************************************************
 //
+// DMA Configurations
+//
+//*****************************************************************************
+#define myDMA0_SRCADDRESS 0 
+#define myDMA0_DESTADDRESS 16402 
+#define myDMA0_BASE DMA_CH1_BASE 
+#define myDMA0_BURSTSIZE 2U
+#define myDMA0_TRANSFERSIZE 50U
+#define myDMA0_SRC_WRAPSIZE 100U
+#define myDMA0_DEST_WRAPSIZE 65535U
+void myDMA0_init();
+#define myDMA1_SRCADDRESS 0 
+#define myDMA1_DESTADDRESS 17170 
+#define myDMA1_BASE DMA_CH2_BASE 
+#define myDMA1_BURSTSIZE 2U
+#define myDMA1_TRANSFERSIZE 50U
+#define myDMA1_SRC_WRAPSIZE 100U
+#define myDMA1_DEST_WRAPSIZE 65535U
+void myDMA1_init();
+#define myDMA2_SRCADDRESS 0 
+#define myDMA2_DESTADDRESS 17938 
+#define myDMA2_BASE DMA_CH3_BASE 
+#define myDMA2_BURSTSIZE 2U
+#define myDMA2_TRANSFERSIZE 50U
+#define myDMA2_SRC_WRAPSIZE 100U
+#define myDMA2_DEST_WRAPSIZE 65535U
+void myDMA2_init();
+
+//*****************************************************************************
+//
 // EPWM Configurations
 //
 //*****************************************************************************
 #define myEPWM1_BASE EPWM1_BASE
-#define myEPWM1_TBPRD 5000
-#define myEPWM1_COUNTER_MODE EPWM_COUNTER_MODE_UP_DOWN
+#define myEPWM1_TBPRD 1999
+#define myEPWM1_COUNTER_MODE EPWM_COUNTER_MODE_UP
 #define myEPWM1_TBPHS 0
 #define myEPWM1_CMPA 1000
 #define myEPWM1_CMPB 500
@@ -139,33 +169,33 @@ extern "C"
 #define myEPWM1_DBFED 240
 #define myEPWM1_TZA_ACTION EPWM_TZ_ACTION_HIGH_Z
 #define myEPWM1_TZB_ACTION EPWM_TZ_ACTION_HIGH_Z
-#define myEPWM1_INTERRUPT_SOURCE EPWM_INT_TBCTR_ZERO_OR_PERIOD
-#define myEPWM2_BASE EPWM2_BASE
-#define myEPWM2_TBPRD 5000
-#define myEPWM2_COUNTER_MODE EPWM_COUNTER_MODE_UP_DOWN
-#define myEPWM2_TBPHS 3334
-#define myEPWM2_CMPA 1000
-#define myEPWM2_CMPB 500
-#define myEPWM2_CMPC 0
-#define myEPWM2_CMPD 0
-#define myEPWM2_DBRED 240
-#define myEPWM2_DBFED 240
-#define myEPWM2_TZA_ACTION EPWM_TZ_ACTION_HIGH_Z
-#define myEPWM2_TZB_ACTION EPWM_TZ_ACTION_HIGH_Z
-#define myEPWM2_INTERRUPT_SOURCE EPWM_INT_TBCTR_ZERO
-#define myEPWM3_BASE EPWM3_BASE
-#define myEPWM3_TBPRD 5000
-#define myEPWM3_COUNTER_MODE EPWM_COUNTER_MODE_UP_DOWN
-#define myEPWM3_TBPHS 6667
-#define myEPWM3_CMPA 1000
-#define myEPWM3_CMPB 500
-#define myEPWM3_CMPC 0
-#define myEPWM3_CMPD 0
-#define myEPWM3_DBRED 240
-#define myEPWM3_DBFED 240
-#define myEPWM3_TZA_ACTION EPWM_TZ_ACTION_HIGH_Z
-#define myEPWM3_TZB_ACTION EPWM_TZ_ACTION_HIGH_Z
-#define myEPWM3_INTERRUPT_SOURCE EPWM_INT_TBCTR_DISABLED
+#define myEPWM1_INTERRUPT_SOURCE EPWM_INT_TBCTR_DISABLED
+#define myEPWM4_BASE EPWM3_BASE
+#define myEPWM4_TBPRD 1999
+#define myEPWM4_COUNTER_MODE EPWM_COUNTER_MODE_UP
+#define myEPWM4_TBPHS 667
+#define myEPWM4_CMPA 1000
+#define myEPWM4_CMPB 500
+#define myEPWM4_CMPC 0
+#define myEPWM4_CMPD 0
+#define myEPWM4_DBRED 240
+#define myEPWM4_DBFED 240
+#define myEPWM4_TZA_ACTION EPWM_TZ_ACTION_HIGH_Z
+#define myEPWM4_TZB_ACTION EPWM_TZ_ACTION_HIGH_Z
+#define myEPWM4_INTERRUPT_SOURCE EPWM_INT_TBCTR_ZERO_OR_PERIOD
+#define myEPWM7_BASE EPWM2_BASE
+#define myEPWM7_TBPRD 1999
+#define myEPWM7_COUNTER_MODE EPWM_COUNTER_MODE_UP
+#define myEPWM7_TBPHS 1333
+#define myEPWM7_CMPA 1000
+#define myEPWM7_CMPB 500
+#define myEPWM7_CMPC 0
+#define myEPWM7_CMPD 0
+#define myEPWM7_DBRED 240
+#define myEPWM7_DBFED 240
+#define myEPWM7_TZA_ACTION EPWM_TZ_ACTION_HIGH_Z
+#define myEPWM7_TZB_ACTION EPWM_TZ_ACTION_HIGH_Z
+#define myEPWM7_INTERRUPT_SOURCE EPWM_INT_TBCTR_ZERO_OR_PERIOD
 
 //*****************************************************************************
 //
@@ -223,6 +253,7 @@ void myMCUSignalSight0_transferLayer_SCI_init();
 //
 //*****************************************************************************
 void	Board_init();
+void	DMA_init();
 void	EPWM_init();
 void	INPUTXBAR_init();
 void	INTERRUPT_init();

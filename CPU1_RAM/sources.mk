@@ -120,5 +120,6 @@ GEN_OPTS__QUOTED :=
 SUBDIRS := \
 . \
 device \
+pwm/sopwm \
 pwm/svm \
 

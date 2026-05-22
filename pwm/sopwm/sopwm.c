@@ -5,6 +5,7 @@
  */
 
 #include "sopwm.h"
+#include <math.h>
 
 const float SOPWM_LUT_N7[SOPWM_M_COUNT][3] = {
     /* m=0.01 */ {60.1180685696f, 80.1773306718f, 80.3641859919f},
@@ -520,3 +521,295 @@ const float SOPWM_LUT_N15[SOPWM_M_COUNT][7] = {
     /* m=0.99 */ {2.0641696788f, 3.8673129699f, 6.2517100849f, 7.8280486844f, 11.4085980426f, 11.4085980426f, 90.0000000000f},
     /* m=1.00 */ {2.7157458859f, 2.7157459130f, 6.8315224133f, 6.8315224133f, 11.4085975758f, 11.4085975758f, 90.0000000000f}
 };
+
+// ============================================================================
+// Open-Loop SOPWM Wrapper
+// ============================================================================
+
+#define SOPWM_MAX_SAMPLES   200
+#define SOPWM_TWO_PI        6.283185307f
+#define SOPWM_PI            3.141592654f
+
+static float     sopwm_Udc       = 0.0f;
+static uint16_t  sopwm_N         = 7;
+static int       sopwm_sampleRes = SOPWM_MAX_SAMPLES;
+static int       sopwm_dataIndex = 0;
+static float     sopwm_alpha[SOPWM_MAX_SAMPLES];
+static float     sopwm_beta[SOPWM_MAX_SAMPLES];
+
+// Observable variables (individually named so SignalSight can address each one)
+float    sopwm_m          = 0.0f;
+float    sopwm_theta      = 0.0f;
+float    sopwm_angle1     = 0.0f;
+float    sopwm_angle2     = 0.0f;
+float    sopwm_angle3     = 0.0f;
+float    sopwm_angle4     = 0.0f;
+float    sopwm_angle5     = 0.0f;
+float    sopwm_angle6     = 0.0f;
+float    sopwm_angle7     = 0.0f;
+uint16_t sopwm_num_angles = 0;
+
+// Internal array used for LUT lookup – mirrored into the named floats above
+static float sopwm_angles_buf[7];
+
+/*
+ * SOPWM_openLoopInit
+ *
+ * Call once before enabling the PWM interrupt.
+ *
+ *   Udc       - DC link voltage (V)
+ *   magnitude - peak reference voltage amplitude (V)
+ *   N         - SOPWM pulse number: preset to 7, 9, 11, 13, or 15
+ *   sampleRes - ISR samples per fundamental cycle (max SOPWM_MAX_SAMPLES)
+ *
+ * Pre-computes a rotating alpha/beta reference vector for open-loop operation.
+ * The modulation index m is derived from this vector each ISR call via:
+ *   m = sqrt(Ualpha^2 + Ubeta^2) / (2 * Udc / pi)
+ */
+void SOPWM_openLoopInit(float Udc, float magnitude, uint16_t N, int sampleRes)
+{
+    int   i;
+    float angle;
+
+    if (sampleRes > SOPWM_MAX_SAMPLES) {
+        sampleRes = SOPWM_MAX_SAMPLES;
+    }
+
+    sopwm_Udc       = Udc;
+    sopwm_N         = N;
+    sopwm_sampleRes = sampleRes;
+    sopwm_dataIndex = 0;
+
+    for (i = 0; i < sampleRes; i++) {
+        angle          = (float)i * SOPWM_TWO_PI / (float)sampleRes;
+        sopwm_alpha[i] = magnitude * cosf(angle);
+        sopwm_beta[i]  = magnitude * sinf(angle);
+    }
+}
+
+/*
+ * SOPWM_openLoopRun
+ *
+ * Call once per PWM ISR.
+ *
+ * Advances the electrical angle, computes the modulation index m from the
+ * pre-computed alpha/beta reference vector, then looks up the SOPWM switching
+ * angles for the preset (N, m) pair.
+ *
+ * Results are written to the provided output pointers AND mirrored in the
+ * observable module variables sopwm_m, sopwm_theta, sopwm_angles[],
+ * sopwm_num_angles for use with a debugger or SignalSight.
+ */
+void SOPWM_openLoopRun(float *angles, uint16_t *num_angles)
+{
+    float    Ualpha, Ubeta;
+    uint16_t i;
+
+    // Current electrical angle (degrees) and alpha/beta for this step
+    sopwm_theta = (float)sopwm_dataIndex * 360.0f / (float)sopwm_sampleRes;
+    Ualpha      = sopwm_alpha[sopwm_dataIndex];
+    Ubeta       = sopwm_beta[sopwm_dataIndex];
+
+    // Advance circular index
+    if (sopwm_dataIndex >= sopwm_sampleRes - 1) {
+        sopwm_dataIndex = 0;
+    } else {
+        sopwm_dataIndex++;
+    }
+
+    // m = sqrt(Ualpha^2 + Ubeta^2) / (2*Udc/pi)
+    sopwm_m = (SOPWM_PI / (2.0f * sopwm_Udc)) * sqrtf(Ualpha * Ualpha + Ubeta * Ubeta);
+
+    // Clamp to valid LUT range [0.01, 1.00]
+    if (sopwm_m < 0.01f) sopwm_m = 0.01f;
+    if (sopwm_m > 1.00f) sopwm_m = 1.00f;
+
+    // Look up switching angles for this (N, m) pair
+    sopwm_num_angles = SOPWM_GetAngles(sopwm_m, sopwm_N, sopwm_angles_buf);
+
+    // Mirror into individually named globals (SignalSight-observable)
+    sopwm_angle1 = (sopwm_num_angles >= 1) ? sopwm_angles_buf[0] : 0.0f;
+    sopwm_angle2 = (sopwm_num_angles >= 2) ? sopwm_angles_buf[1] : 0.0f;
+    sopwm_angle3 = (sopwm_num_angles >= 3) ? sopwm_angles_buf[2] : 0.0f;
+    sopwm_angle4 = (sopwm_num_angles >= 4) ? sopwm_angles_buf[3] : 0.0f;
+    sopwm_angle5 = (sopwm_num_angles >= 5) ? sopwm_angles_buf[4] : 0.0f;
+    sopwm_angle6 = (sopwm_num_angles >= 6) ? sopwm_angles_buf[5] : 0.0f;
+    sopwm_angle7 = (sopwm_num_angles >= 7) ? sopwm_angles_buf[6] : 0.0f;
+
+    // Copy to caller output
+    *num_angles = sopwm_num_angles;
+    for (i = 0; i < sopwm_num_angles; i++) {
+        angles[i] = sopwm_angles_buf[i];
+    }
+}
+
+// ============================================================================
+// DMA-Driven Schedule Table Implementation
+// ============================================================================
+
+/* Schedule tables in DMA-accessible GSRAM.
+ * The linker must have a "ramgs0" section mapped to GS0 (or any GS RAM). */
+#pragma DATA_SECTION(sopwm_sched, "ramgs0")
+SOPWM_CycleCmp_t sopwm_sched[3][2][SOPWM_N_CARR];
+
+volatile uint16_t sopwm_sched_active = 0U;  /* buffer index in use by DMA   */
+volatile uint16_t sopwm_fund_tick    = 0U;  /* flag: new fundamental started */
+
+/* Debug observables — watch these in CCS to diagnose startup */
+volatile uint16_t sopwm_init_done  = 0U;  /* set to 1 after InitSchedule completes */
+volatile uint16_t sopwm_lut_n_base = 0U;  /* n_base returned by GetAngles (expect 3 for N=7) */
+volatile uint16_t sopwm_build_count = 0U; /* increments each BuildSchedule call */
+
+static volatile uint16_t sopwm_swap_pending = 0U;
+static uint16_t          sopwm_cycle_idx    = 0U;
+static uint16_t          sopwm_sched_next   = 1U;
+
+/* 7.2 degrees per carrier cycle at 50 cycles/period */
+#define SOPWM_CYCLE_SPAN_DEG  (360.0f / (float)SOPWM_N_CARR)
+
+static const float SOPWM_PHASE_OFFSET_DEG[3] = { 0.0f, 120.0f, 240.0f };
+
+/*
+ * sopwm_build_phase
+ *
+ * Populate one phase's schedule in the inactive buffer.
+ * global_deg[] contains all 4*n_base angles (already offset and wrapped
+ * to [0, 360°)) for this phase.
+ */
+static void sopwm_build_phase(
+        const float      *global_deg,
+        uint16_t          total,
+        uint16_t          tbprd,
+        uint16_t          buf_idx,
+        uint16_t          ph)
+{
+    SOPWM_CycleCmp_t *tbl = sopwm_sched[ph][buf_idx];
+    uint16_t          i, slot, counts;
+    float             local_ang;
+
+    /* Mark all slots as inactive */
+    for (i = 0U; i < SOPWM_N_CARR; i++) {
+        tbl[i].cmpa = SOPWM_CMP_OFF;
+        tbl[i].cmpb = SOPWM_CMP_OFF;
+    }
+
+    /* Bin each angle into its carrier-cycle slot */
+    for (i = 0U; i < total; i++) {
+        slot = (uint16_t)(global_deg[i] / SOPWM_CYCLE_SPAN_DEG);
+        if (slot >= SOPWM_N_CARR) slot = SOPWM_N_CARR - 1U;
+
+        /* Local position within the cycle → counter counts */
+        local_ang = global_deg[i] - (float)slot * SOPWM_CYCLE_SPAN_DEG;
+        counts    = (uint16_t)((local_ang / SOPWM_CYCLE_SPAN_DEG)
+                               * (float)tbprd + 0.5f);
+        if (counts >= tbprd) counts = tbprd - 1U;  /* clamp */
+
+        /* First event in slot → CMPA; second → CMPB.
+         * Keep CMPA < CMPB so events fire in chronological order. */
+        if (tbl[slot].cmpa == SOPWM_CMP_OFF) {
+            tbl[slot].cmpa = counts;
+        } else if (tbl[slot].cmpb == SOPWM_CMP_OFF) {
+            if (counts < tbl[slot].cmpa) {
+                tbl[slot].cmpb = tbl[slot].cmpa;
+                tbl[slot].cmpa = counts;
+            } else {
+                tbl[slot].cmpb = counts;
+            }
+        }
+        /* >2 events in one slot: silently dropped.
+         * This only occurs at m >= 0.97 boundary cycles — see check script. */
+    }
+}
+
+void SOPWM_InitSchedule(float m, uint16_t N, uint16_t tbprd)
+{
+    uint16_t saved_next;
+
+    /* Build into buffer 0 first */
+    saved_next         = sopwm_sched_next;
+    sopwm_sched_next   = 0U;
+    SOPWM_BuildSchedule(m, N, tbprd);
+
+    /* Restore and build into buffer 1 */
+    sopwm_sched_next   = saved_next;   /* = 1 at startup */
+    SOPWM_BuildSchedule(m, N, tbprd);
+
+    /* Both buffers valid; active=0 is correct for the DMA SRC set in main. */
+    sopwm_init_done = 1U;  /* DEBUG: confirms InitSchedule completed */
+}
+
+void SOPWM_BuildSchedule(float m, uint16_t N, uint16_t tbprd)
+{
+    float    base_deg[7];
+    float    all_angles[28];   /* 4 * 7 max */
+    float    shifted[28];
+    uint16_t n_base, total, ph, i;
+    float    offset, wrapped;
+
+    /* Fetch N base angles (degrees, Q1 only) from LUT */
+    n_base = SOPWM_GetAngles(m, N, base_deg);
+    sopwm_lut_n_base = n_base;   /* DEBUG: should be N/2 rounded up (3 for N=7) */
+    if (n_base == 0U) return;
+
+    sopwm_build_count++;          /* DEBUG: should reach 2 after InitSchedule */
+
+    total = 4U * n_base;
+
+    /* Quarter-wave expansion → all 4N global angles for phase A */
+    for (i = 0U; i < n_base; i++)
+        all_angles[i]             = base_deg[i];               /* Q1 */
+    for (i = 0U; i < n_base; i++)
+        all_angles[n_base + i]    = 180.0f
+                                    - base_deg[n_base - 1U - i]; /* Q2 */
+    for (i = 0U; i < n_base; i++)
+        all_angles[2U*n_base + i] = 180.0f + base_deg[i];       /* Q3 */
+    for (i = 0U; i < n_base; i++)
+        all_angles[3U*n_base + i] = 360.0f
+                                    - base_deg[n_base - 1U - i]; /* Q4 */
+
+    /* Build each phase with its electrical offset (0°, 120°, 240°) */
+    for (ph = 0U; ph < 3U; ph++) {
+        offset = SOPWM_PHASE_OFFSET_DEG[ph];
+        if (offset == 0.0f) {
+            sopwm_build_phase(all_angles, total, tbprd,
+                              sopwm_sched_next, ph);
+        } else {
+            /* Shift all angles and wrap to [0, 360°) */
+            for (i = 0U; i < total; i++) {
+                wrapped    = all_angles[i] + offset;
+                if (wrapped >= 360.0f) wrapped -= 360.0f;
+                shifted[i] = wrapped;
+            }
+            sopwm_build_phase(shifted, total, tbprd,
+                              sopwm_sched_next, ph);
+        }
+    }
+}
+
+void SOPWM_CommitSchedule(void)
+{
+    /* Arm the newly built buffer; swap happens at next fundamental boundary */
+    sopwm_swap_pending = 1U;
+}
+
+void SOPWM_schedISR(void)
+{
+    /* Advance the carrier-cycle counter */
+    sopwm_cycle_idx++;
+
+    if (sopwm_cycle_idx >= SOPWM_N_CARR) {
+        sopwm_cycle_idx = 0U;
+
+        /* If main loop has committed a new schedule, swap the buffers now.
+         * The DMA source-begin address must be updated separately by the
+         * caller after checking sopwm_sched_active (see DMA instructions). */
+        if (sopwm_swap_pending) {
+            sopwm_sched_active ^= 1U;
+            sopwm_sched_next   ^= 1U;
+            sopwm_swap_pending  = 0U;
+        }
+
+        /* Signal main loop to rebuild the next buffer */
+        sopwm_fund_tick = 1U;
+    }
+}

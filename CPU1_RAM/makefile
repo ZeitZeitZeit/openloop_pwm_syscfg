@@ -20,6 +20,7 @@ ORDERED_OBJS += \
 "./main.obj" \
 "./device/device.obj" \
 "./device/f28004x_codestartbranch.obj" \
+"./pwm/sopwm/sopwm.obj" \
 "./pwm/svm/svm.obj" \
 "../28004x_generic_ram_lnk.cmd" \
 "C:/ti/c2000/C2000Ware_26_00_00_00/driverlib/f28004x/driverlib/ccs/Debug/driverlib.lib" \
@@ -36,9 +37,11 @@ RMDIR := RMDIR /S/Q
 -include sources.mk
 -include subdir_vars.mk
 -include device/subdir_vars.mk
+-include pwm/sopwm/subdir_vars.mk
 -include pwm/svm/subdir_vars.mk
 -include subdir_rules.mk
 -include device/subdir_rules.mk
+-include pwm/sopwm/subdir_rules.mk
 -include pwm/svm/subdir_rules.mk
 -include objects.mk
 
@@ -151,8 +154,8 @@ epwm_svm.out: $(OBJS) $(CMD_SRCS) $(LIB_SRCS) $(GEN_CMDS)
 # Other Targets
 clean:
 	-$(RM) $(GEN_MISC_FILES__QUOTED)$(GEN_FILES__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "syscfg\board.obj" "syscfg\c2000ware_libraries.obj" "syscfg\transfer_utils.obj" "syscfg\export\export.obj" "syscfg\export\export_package.obj" "syscfg\signalsight\signalsight.obj" "syscfg\signalsight\signalsight_hash.obj" "main.obj" "device\device.obj" "device\f28004x_codestartbranch.obj" "pwm\svm\svm.obj" 
-	-$(RM) "syscfg\board.d" "syscfg\c2000ware_libraries.d" "syscfg\transfer_utils.d" "syscfg\export\export.d" "syscfg\export\export_package.d" "syscfg\signalsight\signalsight.d" "syscfg\signalsight\signalsight_hash.d" "main.d" "device\device.d" "pwm\svm\svm.d" 
+	-$(RM) "syscfg\board.obj" "syscfg\c2000ware_libraries.obj" "syscfg\transfer_utils.obj" "syscfg\export\export.obj" "syscfg\export\export_package.obj" "syscfg\signalsight\signalsight.obj" "syscfg\signalsight\signalsight_hash.obj" "main.obj" "device\device.obj" "device\f28004x_codestartbranch.obj" "pwm\sopwm\sopwm.obj" "pwm\svm\svm.obj" 
+	-$(RM) "syscfg\board.d" "syscfg\c2000ware_libraries.d" "syscfg\transfer_utils.d" "syscfg\export\export.d" "syscfg\export\export_package.d" "syscfg\signalsight\signalsight.d" "syscfg\signalsight\signalsight_hash.d" "main.d" "device\device.d" "pwm\sopwm\sopwm.d" "pwm\svm\svm.d" 
 	-$(RM) "device\f28004x_codestartbranch.d" 
 	-$(RMDIR) $(GEN_MISC_DIRS__QUOTED)
 	-@echo ' '

@@ -79,4 +79,128 @@ static inline uint16_t SOPWM_GetAngles(float m, uint16_t N, float *angles)
     return num_angles;
 }
 
+// ============================================================================
+// Open-Loop SOPWM API
+// ============================================================================
+
+/*
+ * SOPWM_openLoopInit - Initialise the open-loop SOPWM module.
+ *   Udc       - DC link voltage (V)
+ *   magnitude - peak reference voltage amplitude (V)
+ *   N         - preset pulse number: 7, 9, 11, 13, or 15
+ *   sampleRes - ISR samples per fundamental cycle (max 200)
+ */
+void SOPWM_openLoopInit(float Udc, float magnitude, uint16_t N, int sampleRes);
+
+/*
+ * SOPWM_openLoopRun - Call once per PWM ISR.
+ * Computes m from Ualpha/Ubeta, looks up switching angles for preset N,
+ * and writes the angle array and count to the provided output pointers.
+ * Results are also mirrored in the observable module variables below.
+ */
+void SOPWM_openLoopRun(float *angles, uint16_t *num_angles);
+
+// Observable variables (individually named so SignalSight can address each one)
+extern float    sopwm_m;
+extern float    sopwm_theta;
+extern float    sopwm_angle1;
+extern float    sopwm_angle2;
+extern float    sopwm_angle3;
+extern float    sopwm_angle4;
+extern float    sopwm_angle5;
+extern float    sopwm_angle6;
+extern float    sopwm_angle7;
+extern uint16_t sopwm_num_angles;
+
+// ============================================================================
+// DMA-Driven Schedule Table API
+// ============================================================================
+
+#define SOPWM_N_CARR          50U      /* carrier cycles per fundamental        */
+#define SOPWM_CMP_OFF         0xFFFFU  /* disabled CMP value — never fires      */
+#define SOPWM_PHASE_B_OFFSET  17U      /* cycle shift for phase B (≈120°)       */
+#define SOPWM_PHASE_C_OFFSET  33U      /* cycle shift for phase C (≈240°)       */
+
+/*
+ * One carrier-cycle compare pair.  Packed into the DMA source table.
+ *   cmpa / cmpb : counter counts at which the AQ toggles EPWMxA.
+ *   Set to SOPWM_CMP_OFF for cycles that carry no switching event.
+ */
+typedef struct {
+    uint16_t cmpa;
+    uint16_t cmpb;
+} SOPWM_CycleCmp_t;
+
+/*
+ * Double-buffered schedule tables — [phase][buffer][cycle]
+ *   phase  : 0=A (ePWM1), 1=B (ePWM4), 2=C (ePWM7)
+ *   buffer : 0 or 1 (double-buffer)
+ *   cycle  : 0..SOPWM_N_CARR-1
+ *
+ * DMA source address for phase A = &sopwm_sched[0][sopwm_sched_active][0]
+ * Allocated in DMA-accessible RAM (see #pragma DATA_SECTION in sopwm.c).
+ */
+extern SOPWM_CycleCmp_t  sopwm_sched[3][2][SOPWM_N_CARR];
+
+/* Buffer index currently being consumed by DMA (0 or 1) */
+extern volatile uint16_t sopwm_sched_active;
+
+/*
+ * Set by SOPWM_schedISR at the start of every fundamental cycle.
+ * Clear in the main loop after calling SOPWM_BuildSchedule().
+ */
+extern volatile uint16_t sopwm_fund_tick;
+
+/* Debug observables — add these to CCS Watch Expressions */
+extern volatile uint16_t sopwm_init_done;   /* expect 1 after init           */
+extern volatile uint16_t sopwm_lut_n_base;  /* expect 3 for N=7              */
+extern volatile uint16_t sopwm_build_count; /* expect 2 after InitSchedule   */
+
+/*
+ * SOPWM_InitSchedule
+ *
+ * One-time startup call: populates BOTH double-buffers with the same
+ * m / N / tbprd so the DMA has valid data from the very first carrier
+ * cycle.  Sets sopwm_sched_active = 0 and leaves sopwm_sched_next = 1
+ * ready for the first main-loop rebuild.  Do NOT call CommitSchedule
+ * after this — no swap is needed.
+ *
+ *   m      - initial modulation index [0.01, 1.00]
+ *   N      - pulse number (7, 9, 11, 13 or 15)
+ *   tbprd  - TBPRD value of the ePWM modules (counts per carrier cycle)
+ */
+void SOPWM_InitSchedule(float m, uint16_t N, uint16_t tbprd);
+
+/*
+ * SOPWM_BuildSchedule
+ *
+ * Compute the 50-slot CMPA/CMPB schedule for all three phases from the
+ * current modulation index and pulse number.  Writes into the INACTIVE
+ * buffer.  Call from the main loop whenever sopwm_fund_tick is set.
+ * Follow with SOPWM_CommitSchedule() to arm the new buffer for DMA swap.
+ *
+ *   m      - modulation index [0.01, 1.00]
+ *   N      - pulse number (7, 9, 11, 13 or 15)
+ *   tbprd  - TBPRD value of the ePWM modules (counts per carrier cycle)
+ */
+void SOPWM_BuildSchedule(float m, uint16_t N, uint16_t tbprd);
+
+/*
+ * SOPWM_CommitSchedule
+ *
+ * Mark the inactive buffer as ready.  The next SOPWM_schedISR fundamental
+ * boundary will atomically promote it to active so DMA picks it up.
+ */
+void SOPWM_CommitSchedule(void);
+
+/*
+ * SOPWM_schedISR
+ *
+ * Call once from the ePWM1 ZERO interrupt (50 kHz).
+ * Tracks the carrier-cycle index, swaps the double-buffer at each
+ * fundamental boundary, and sets sopwm_fund_tick.
+ * Does NOT write to CMPA/CMPB — DMA handles register loading.
+ */
+void SOPWM_schedISR(void);
+
 #endif /* _SOPWM_H_ */

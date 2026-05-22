@@ -1,12 +1,12 @@
 
 {
-    "svm_Ta": {"index" : 0, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
-    "svm_Tb": {"index" : 1, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
-    "svm_Tc": {"index" : 2, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
-    "svm_Ualpha": {"index" : 3, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
-    "svm_Ubeta": {"index" : 4, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
-    "svm_d1": {"index" : 5, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
-    "svm_d2": {"index" : 6, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
-    "svm_d0": {"index" : 7, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
-    "svm_Sector": {"index" : 8, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []}
+    "sopwm_m": {"index" : 0, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
+    "sopwm_theta": {"index" : 1, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
+    "sopwm_angle1": {"index" : 2, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
+    "sopwm_angle2": {"index" : 3, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
+    "sopwm_angle3": {"index" : 4, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
+    "sopwm_angle4": {"index" : 5, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
+    "sopwm_angle5": {"index" : 6, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
+    "sopwm_angle6": {"index" : 7, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []},
+    "sopwm_angle7": {"index" : 8, "type" : "float", "permissions" : "R", "streamable" : true, "page" : []}
 }

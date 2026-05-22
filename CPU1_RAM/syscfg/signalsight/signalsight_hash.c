@@ -45,15 +45,15 @@
     //
     //Hash Table Variables Externs
     //
-    extern float svm_Ta;
-    extern float svm_Tb;
-    extern float svm_Tc;
-    extern float svm_Ualpha;
-    extern float svm_Ubeta;
-    extern float svm_d1;
-    extern float svm_d2;
-    extern float svm_d0;
-    extern float svm_Sector;
+    extern float sopwm_m;
+    extern float sopwm_theta;
+    extern float sopwm_angle1;
+    extern float sopwm_angle2;
+    extern float sopwm_angle3;
+    extern float sopwm_angle4;
+    extern float sopwm_angle5;
+    extern float sopwm_angle6;
+    extern float sopwm_angle7;
 
     //
     //Hash Table Indices - indices are inclusive
@@ -69,15 +69,15 @@
     // Hash Table arrays
     //
     const void* SSHASH_hash_table[SSHASH_NUMBER_OF_VARIABLES] = {
-    /*float variable*/                         &svm_Ta,
-    /*float variable*/                         &svm_Tb,
-    /*float variable*/                         &svm_Tc,
-    /*float variable*/                         &svm_Ualpha,
-    /*float variable*/                         &svm_Ubeta,
-    /*float variable*/                         &svm_d1,
-    /*float variable*/                         &svm_d2,
-    /*float variable*/                         &svm_d0,
-    /*float variable*/                         &svm_Sector,
+    /*float variable*/                         &sopwm_m,
+    /*float variable*/                         &sopwm_theta,
+    /*float variable*/                         &sopwm_angle1,
+    /*float variable*/                         &sopwm_angle2,
+    /*float variable*/                         &sopwm_angle3,
+    /*float variable*/                         &sopwm_angle4,
+    /*float variable*/                         &sopwm_angle5,
+    /*float variable*/                         &sopwm_angle6,
+    /*float variable*/                         &sopwm_angle7,
     };
 #endif //HASH_TABLE_myHashTable0
 

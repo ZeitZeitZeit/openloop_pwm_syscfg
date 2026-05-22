@@ -81,11 +81,11 @@ SECTIONS
    .stack           : > RAMM1,     PAGE = 1
 
 #if defined(__TI_EABI__)
-   .bss             : >> RAMLS5 | RAMLS6,     PAGE = 1
+   .bss             : >> RAMLS5 | RAMLS6 | RAMGS2 | RAMGS3,     PAGE = 1
    .bss:output      : > RAMLS5,     PAGE = 1
    .init_array      : > RAMM0,      PAGE = 0
-   .const           : >> RAMLS5 | RAMLS6,     PAGE = 1
-   .data            : >> RAMLS5 | RAMLS6,     PAGE = 1
+   .const           : >> RAMLS5 | RAMLS6 | RAMGS2 | RAMGS3,     PAGE = 1
+   .data            : >> RAMLS5 | RAMLS6 | RAMGS2 | RAMGS3,     PAGE = 1
    .sysmem          : > RAMLS7,     PAGE = 1
    .bss:cio         : > RAMLS0,     PAGE = 0
 #else
