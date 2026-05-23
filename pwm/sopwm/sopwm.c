@@ -661,7 +661,7 @@ volatile uint16_t sopwm_lut_n_base = 0U;  /* n_base returned by GetAngles (expec
 volatile uint16_t sopwm_build_count = 0U; /* increments each BuildSchedule call */
 
 static volatile uint16_t sopwm_swap_pending = 0U;
-static uint16_t          sopwm_cycle_idx    = 0U;
+uint16_t                 sopwm_cycle_idx    = 0U;
 static uint16_t          sopwm_sched_next   = 1U;
 
 /* 7.2 degrees per carrier cycle at 50 cycles/period */

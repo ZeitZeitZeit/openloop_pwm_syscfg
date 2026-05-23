@@ -130,31 +130,31 @@ void DMA_init(){
 
 void myDMA0_init(){
     DMA_setEmulationMode(DMA_EMULATION_STOP);
-    DMA_configAddresses(myDMA0_BASE, (const void *)16402, (const void *)0);
-    DMA_configBurst(myDMA0_BASE, 2U, 1, 1);
-    DMA_configTransfer(myDMA0_BASE, 50U, 1, -1);
+    DMA_configAddresses(myDMA0_BASE, (const void *)16491, (const void *)0);
+    DMA_configBurst(myDMA0_BASE, 2U, 1, 2);
+    DMA_configTransfer(myDMA0_BASE, 50U, 0, -4);
     DMA_configWrap(myDMA0_BASE, 100U, 0, 65535U, 0);
-    DMA_configMode(myDMA0_BASE, DMA_TRIGGER_EPWM1SOCA, DMA_CFG_ONESHOT_DISABLE | DMA_CFG_CONTINUOUS_ENABLE | DMA_CFG_SIZE_32BIT);
+    DMA_configMode(myDMA0_BASE, DMA_TRIGGER_EPWM1SOCA, DMA_CFG_ONESHOT_DISABLE | DMA_CFG_CONTINUOUS_ENABLE | DMA_CFG_SIZE_16BIT);
     DMA_enableTrigger(myDMA0_BASE);
     DMA_stopChannel(myDMA0_BASE);
 }
 void myDMA1_init(){
     DMA_setEmulationMode(DMA_EMULATION_STOP);
-    DMA_configAddresses(myDMA1_BASE, (const void *)17170, (const void *)0);
-    DMA_configBurst(myDMA1_BASE, 2U, 1, 1);
-    DMA_configTransfer(myDMA1_BASE, 50U, 1, -1);
+    DMA_configAddresses(myDMA1_BASE, (const void *)17259, (const void *)0);
+    DMA_configBurst(myDMA1_BASE, 2U, 1, 2);
+    DMA_configTransfer(myDMA1_BASE, 50U, 0, -4);
     DMA_configWrap(myDMA1_BASE, 100U, 0, 65535U, 0);
-    DMA_configMode(myDMA1_BASE, DMA_TRIGGER_EPWM4SOCA, DMA_CFG_ONESHOT_DISABLE | DMA_CFG_CONTINUOUS_ENABLE | DMA_CFG_SIZE_32BIT);
+    DMA_configMode(myDMA1_BASE, DMA_TRIGGER_EPWM4SOCA, DMA_CFG_ONESHOT_DISABLE | DMA_CFG_CONTINUOUS_ENABLE | DMA_CFG_SIZE_16BIT);
     DMA_enableTrigger(myDMA1_BASE);
     DMA_stopChannel(myDMA1_BASE);
 }
 void myDMA2_init(){
     DMA_setEmulationMode(DMA_EMULATION_STOP);
-    DMA_configAddresses(myDMA2_BASE, (const void *)17938, (const void *)0);
-    DMA_configBurst(myDMA2_BASE, 2U, 1, 1);
-    DMA_configTransfer(myDMA2_BASE, 50U, 1, -1);
+    DMA_configAddresses(myDMA2_BASE, (const void *)18027, (const void *)0);
+    DMA_configBurst(myDMA2_BASE, 2U, 1, 2);
+    DMA_configTransfer(myDMA2_BASE, 50U, 0, -4);
     DMA_configWrap(myDMA2_BASE, 100U, 0, 65535U, 0);
-    DMA_configMode(myDMA2_BASE, DMA_TRIGGER_EPWM7SOCA, DMA_CFG_ONESHOT_DISABLE | DMA_CFG_CONTINUOUS_ENABLE | DMA_CFG_SIZE_32BIT);
+    DMA_configMode(myDMA2_BASE, DMA_TRIGGER_EPWM7SOCA, DMA_CFG_ONESHOT_DISABLE | DMA_CFG_CONTINUOUS_ENABLE | DMA_CFG_SIZE_16BIT);
     DMA_enableTrigger(myDMA2_BASE);
     DMA_stopChannel(myDMA2_BASE);
 }
@@ -202,9 +202,11 @@ void EPWM_init(){
     EPWM_setDeadBandControlShadowLoadMode(myEPWM1_BASE, EPWM_DB_LOAD_ON_CNTR_ZERO);	
     EPWM_disableDeadBandControlShadowLoadMode(myEPWM1_BASE);	
     EPWM_enableInterrupt(myEPWM1_BASE);	
+    EPWM_setInterruptSource(myEPWM1_BASE, EPWM_INT_TBCTR_ZERO);	
+    EPWM_setInterruptEventCount(myEPWM1_BASE, 1);	
     EPWM_enableADCTrigger(myEPWM1_BASE, EPWM_SOC_A);	
     EPWM_setADCTriggerSource(myEPWM1_BASE, EPWM_SOC_A, EPWM_SOC_TBCTR_ZERO);	
-    EPWM_setADCTriggerEventPrescale(myEPWM1_BASE, EPWM_SOC_A, 2);	
+    EPWM_setADCTriggerEventPrescale(myEPWM1_BASE, EPWM_SOC_A, 1);	
     EPWM_setClockPrescaler(myEPWM4_BASE, EPWM_CLOCK_DIVIDER_1, EPWM_HSCLOCK_DIVIDER_1);	
     EPWM_setTimeBasePeriod(myEPWM4_BASE, 1999);	
     EPWM_setTimeBaseCounter(myEPWM4_BASE, 0);	
@@ -242,10 +244,11 @@ void EPWM_init(){
     EPWM_setDeadBandControlShadowLoadMode(myEPWM4_BASE, EPWM_DB_LOAD_ON_CNTR_ZERO);	
     EPWM_disableDeadBandControlShadowLoadMode(myEPWM4_BASE);	
     EPWM_enableInterrupt(myEPWM4_BASE);	
-    EPWM_setInterruptSource(myEPWM4_BASE, EPWM_INT_TBCTR_ZERO_OR_PERIOD);	
-    EPWM_setInterruptEventCount(myEPWM4_BASE, 2);	
+    EPWM_setInterruptSource(myEPWM4_BASE, EPWM_INT_TBCTR_ZERO);	
+    EPWM_setInterruptEventCount(myEPWM4_BASE, 1);	
     EPWM_enableADCTrigger(myEPWM4_BASE, EPWM_SOC_A);	
     EPWM_setADCTriggerSource(myEPWM4_BASE, EPWM_SOC_A, EPWM_SOC_TBCTR_ZERO);	
+    EPWM_setADCTriggerEventPrescale(myEPWM4_BASE, EPWM_SOC_A, 1);	
     EPWM_setClockPrescaler(myEPWM7_BASE, EPWM_CLOCK_DIVIDER_1, EPWM_HSCLOCK_DIVIDER_1);	
     EPWM_setTimeBasePeriod(myEPWM7_BASE, 1999);	
     EPWM_setTimeBaseCounter(myEPWM7_BASE, 0);	
@@ -283,10 +286,11 @@ void EPWM_init(){
     EPWM_setDeadBandControlShadowLoadMode(myEPWM7_BASE, EPWM_DB_LOAD_ON_CNTR_ZERO);	
     EPWM_disableDeadBandControlShadowLoadMode(myEPWM7_BASE);	
     EPWM_enableInterrupt(myEPWM7_BASE);	
-    EPWM_setInterruptSource(myEPWM7_BASE, EPWM_INT_TBCTR_ZERO_OR_PERIOD);	
-    EPWM_setInterruptEventCount(myEPWM7_BASE, 2);	
+    EPWM_setInterruptSource(myEPWM7_BASE, EPWM_INT_TBCTR_ZERO);	
+    EPWM_setInterruptEventCount(myEPWM7_BASE, 1);	
     EPWM_enableADCTrigger(myEPWM7_BASE, EPWM_SOC_A);	
     EPWM_setADCTriggerSource(myEPWM7_BASE, EPWM_SOC_A, EPWM_SOC_TBCTR_ZERO);	
+    EPWM_setADCTriggerEventPrescale(myEPWM7_BASE, EPWM_SOC_A, 1);	
 }
 
 //*****************************************************************************

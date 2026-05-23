@@ -61,6 +61,13 @@
 // Modulation index command — write from debugger or closed-loop controller
 float sopwm_m_cmd = SOPWM_M_INIT;
 
+// Debug: snapshot of ePWM1 CMPA/CMPB captured each fundamental tick.
+// If DMA is writing correctly these should change away from the SysConfig
+// init value (1000/500). Expected values for m=0.50, N=7: 457, 1256, 1670...
+volatile uint16_t dbg_cmpa_snapshot = 0;
+volatile uint16_t dbg_cmpb_snapshot = 0;
+volatile uint32_t dbg_isr_count     = 0;
+
 //
 // Function Prototypes
 //
@@ -112,30 +119,27 @@ void main(void)
     //
     SIGNALSIGHT_init();
 
-    // Static DMA channel config (trigger, burst, transfer, DST) is generated
-    // by SysConfig into Board_init() above — myDMA0/1/2 map to CH1/CH2/CH3.
-    // Point each channel's SRC to the initial active schedule buffer (index 0).
+    //
+    // Pre-build BOTH double-buffers BEFORE starting DMA so data is valid
+    // from the very first SOC-A trigger.
+    //
+    SOPWM_InitSchedule(SOPWM_M_INIT, SOPWM_N, SOPWM_TBPRD);
+
+    // Set DMA source addresses to the populated schedule table.
     DMA_configAddresses(myDMA0_BASE,
-                        (const void *)myDMA0_DESTADDRESS,
+                        (const void *)(myEPWM1_BASE + EPWM_O_CMPA + 1U),
                         (const void *)&sopwm_sched[0][0][0]);
     DMA_configAddresses(myDMA1_BASE,
-                        (const void *)myDMA1_DESTADDRESS,
+                        (const void *)(myEPWM4_BASE + EPWM_O_CMPA + 1U),
                         (const void *)&sopwm_sched[1][0][0]);
     DMA_configAddresses(myDMA2_BASE,
-                        (const void *)myDMA2_DESTADDRESS,
+                        (const void *)(myEPWM7_BASE + EPWM_O_CMPA + 1U),
                         (const void *)&sopwm_sched[2][0][0]);
 
     // Start all three DMA channels — they will auto-trigger on ePWM ZERO.
     DMA_startChannel(myDMA0_BASE);
     DMA_startChannel(myDMA1_BASE);
     DMA_startChannel(myDMA2_BASE);
-
-    //
-    // Pre-build BOTH double-buffers so DMA has valid data from cycle 0.
-    // (BuildSchedule alone only fills the inactive buffer; the active buffer
-    // would start uninitialized for the first 50 carrier cycles.)
-    //
-    SOPWM_InitSchedule(SOPWM_M_INIT, SOPWM_N, SOPWM_TBPRD);
 
     //
     // Enable sync and clock to PWM
@@ -199,19 +203,33 @@ __interrupt void epwm1ISR(void)
     // no manual EPWM_setCounterCompareValue() calls needed here.
     //
     SOPWM_schedISR();
+    dbg_isr_count++;
+
+    // Capture at cycle 12: DMA wrote slot[11] (cmpa=1670,cmpb=0xFFFF) at
+    // cycle 11 ZERO; it latches active at cycle 12 ZERO before ISR reads.
+    if (sopwm_cycle_idx == 12U)
+    {
+        dbg_cmpa_snapshot = EPWM_getCounterCompareValue(myEPWM1_BASE, EPWM_COUNTER_COMPARE_A);
+        dbg_cmpb_snapshot = EPWM_getCounterCompareValue(myEPWM1_BASE, EPWM_COUNTER_COMPARE_B);
+    }
 
     // After a fundamental rollover, re-point DMA SRC to the newly activated
     // buffer so the next 50-cycle run reads the freshly built schedule.
     if (sopwm_fund_tick)
     {
+        // Snapshot CMPA/CMPB before re-pointing — if DMA worked these differ
+        // from the SysConfig init values (1000 / 500).
+        dbg_cmpa_snapshot = EPWM_getCounterCompareValue(myEPWM1_BASE, EPWM_COUNTER_COMPARE_A);
+        dbg_cmpb_snapshot = EPWM_getCounterCompareValue(myEPWM1_BASE, EPWM_COUNTER_COMPARE_B);
+
         DMA_configAddresses(myDMA0_BASE,
-                            (const void *)myDMA0_DESTADDRESS,
+                            (const void *)(myEPWM1_BASE + EPWM_O_CMPA + 1U),
                             (const void *)&sopwm_sched[0][sopwm_sched_active][0]);
         DMA_configAddresses(myDMA1_BASE,
-                            (const void *)myDMA1_DESTADDRESS,
+                            (const void *)(myEPWM4_BASE + EPWM_O_CMPA + 1U),
                             (const void *)&sopwm_sched[1][sopwm_sched_active][0]);
         DMA_configAddresses(myDMA2_BASE,
-                            (const void *)myDMA2_DESTADDRESS,
+                            (const void *)(myEPWM7_BASE + EPWM_O_CMPA + 1U),
                             (const void *)&sopwm_sched[2][sopwm_sched_active][0]);
     }
 

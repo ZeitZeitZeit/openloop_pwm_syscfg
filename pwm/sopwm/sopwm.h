@@ -155,6 +155,7 @@ extern volatile uint16_t sopwm_fund_tick;
 extern volatile uint16_t sopwm_init_done;   /* expect 1 after init           */
 extern volatile uint16_t sopwm_lut_n_base;  /* expect 3 for N=7              */
 extern volatile uint16_t sopwm_build_count; /* expect 2 after InitSchedule   */
+extern          uint16_t sopwm_cycle_idx;   /* current carrier cycle 0..49   */
 
 /*
  * SOPWM_InitSchedule
