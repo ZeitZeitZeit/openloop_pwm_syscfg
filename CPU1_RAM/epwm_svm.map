@@ -1,7 +1,7 @@
 ******************************************************************************
              TMS320C2000 Linker PC v25.11.0                    
 ******************************************************************************
->> Linked Fri May 22 18:28:44 2026
+>> Linked Wed May 27 13:31:05 2026
 
 OUTPUT FILE NAME:   <epwm_svm.out>
 ENTRY POINT SYMBOL: "code_start"  address: 00000000
@@ -13,12 +13,12 @@ MEMORY CONFIGURATION
 ----------------------  --------  ---------  --------  --------  ----  --------
 PAGE 0:
   BEGIN                 00000000   00000002  00000002  00000000  RWIX
-  RAMM0                 000000f6   0000030a  00000054  000002b6  RWIX
+  RAMM0                 000000f6   0000030a  00000052  000002b8  RWIX
   RAMLS0                00008000   00000800  00000800  00000000  RWIX
   RAMLS1                00008800   00000800  00000800  00000000  RWIX
   RAMLS2                00009000   00000800  00000800  00000000  RWIX
   RAMLS3                00009800   00000800  00000800  00000000  RWIX
-  RAMLS4                0000a000   00000800  000001a3  0000065d  RWIX
+  RAMLS4                0000a000   00000800  000001ab  00000655  RWIX
   FLASH_BANK0_SEC0      00080000   00001000  00000000  00001000  RWIX
   FLASH_BANK0_SEC1      00081000   00001000  00000000  00001000  RWIX
   FLASH_BANK0_SEC2      00082000   00001000  00000000  00001000  RWIX
@@ -61,7 +61,7 @@ PAGE 1:
   RAMLS7                0000b800   00000800  00000000  00000800  RWIX
   RAMGS0                0000c000   00002000  00000258  00001da8  RWIX
   RAMGS1                0000e000   00002000  00000000  00002000  RWIX
-  RAMGS2                00010000   00002000  00000c4a  000013b6  RWIX
+  RAMGS2                00010000   00002000  00000c4c  000013b4  RWIX
   RAMGS3                00012000   00001ff8  00000000  00001ff8  RWIX
 
 
@@ -78,13 +78,13 @@ codestart
 *          0    000000f6    00000004     
                   000000f6    00000004     driverlib_eabi.lib : sysctl.obj (.TI.ramfunc)
 
-.cinit     0    000000fa    00000050     
-                  000000fa    0000001e     (.cinit..data.2.load) [load image, compression = lzss]
-                  00000118    0000000c     (.cinit..data.1.load) [load image, compression = lzss]
-                  00000124    0000000c     (.cinit..data.3.load) [load image, compression = lzss]
-                  00000130    00000006     (__TI_handler_table)
-                  00000136    00000004     (.cinit.ramgs0.load) [load image, compression = zero_init]
-                  0000013a    00000010     (__TI_cinit_table)
+.cinit     0    000000fa    0000004e     
+                  000000fa    0000001c     (.cinit..data.2.load) [load image, compression = lzss]
+                  00000116    0000000c     (.cinit..data.1.load) [load image, compression = lzss]
+                  00000122    0000000c     (.cinit..data.3.load) [load image, compression = lzss]
+                  0000012e    00000006     (__TI_handler_table)
+                  00000134    00000004     (.cinit.ramgs0.load) [load image, compression = zero_init]
+                  00000138    00000010     (__TI_cinit_table)
 
 .reset     0    003fffc0    00000000     DSECT
 
@@ -98,31 +98,31 @@ ramgs0     1    0000c000    00000258     UNINITIALIZED
                   0000c000    00000258     sopwm.obj (ramgs0)
 
 .text.1    0    00008000    00000800     
-                  00008000    000002ff     board.obj (.text:EPWM_init)
-                  000082ff    00000172     signalsight.obj (.text:SIGNALSIGHT_sendPlotData)
-                  00008471    0000011a     sopwm.obj (.text:SOPWM_BuildSchedule)
-                  0000858b    000000e2     signalsight.obj (.text:EXPORTPACKAGE_takeActionOnMessage)
-                  0000866d    000000e0     device.obj (.text:Device_enableAllPeripherals)
-                  0000874d    000000b2     sopwm.obj (.text:sopwm_build_phase)
-                  000087ff    00000001     export.obj (.text:EXPORT_init)
+                  00008000    000002fd     board.obj (.text:EPWM_init)
+                  000082fd    00000172     signalsight.obj (.text:SIGNALSIGHT_sendPlotData)
+                  0000846f    0000011a     sopwm.obj (.text:SOPWM_BuildSchedule)
+                  00008589    000000e2     signalsight.obj (.text:EXPORTPACKAGE_takeActionOnMessage)
+                  0000866b    000000e0     device.obj (.text:Device_enableAllPeripherals)
+                  0000874b    000000b2     sopwm.obj (.text:sopwm_build_phase)
+                  000087fd    00000003     board.obj (.text:SCI_init)
 
 .text.2    0    00008800    00000800     
                   00008800    000000d0     signalsight.obj (.text:SIGNALSIGHT_queueUpStreamData)
                   000088d0    000000c8     sopwm.obj (.text:SOPWM_GetAngles)
                   00008998    000000c8     driverlib_eabi.lib : sysctl.obj (.text:SysCtl_setClock)
                   00008a60    000000bd                        : sysctl.obj (.text:SysCtl_isPLLValid)
-                  00008b1d    0000009d                        : dma.obj (.text:DMA_configMode)
-                  00008bba    0000009b     main.obj (.text:epwm1ISR)
-                  00008c55    0000007f     driverlib_eabi.lib : interrupt.obj (.text:Interrupt_clearIFR)
-                  00008cd4    00000075     board.obj (.text:EPWM_setADCTriggerSource)
-                  00008d49    00000073     driverlib_eabi.lib : sysctl.obj (.text:DCC_setCounterSeeds)
-                  00008dbc    00000072     board.obj (.text:PinMux_init)
-                  00008e2e    00000064     main.obj (.text:main)
-                  00008e92    0000005e     driverlib_eabi.lib : sysctl.obj (.text:SysCtl_getClock)
-                  00008ef0    00000056     export.obj (.text:INT_myMCUSignalSight0_transferLayer_SCI_RX_ISR)
-                  00008f46    00000052     driverlib_eabi.lib : gpio.obj (.text:GPIO_setPadConfig)
-                  00008f98    00000051     device.obj (.text:Device_init)
-                  00008fe9    00000017     device.obj (.text:SysCtl_enablePeripheral)
+                  00008b1d    000000a5     main.obj (.text:epwm1ISR)
+                  00008bc2    0000009d     driverlib_eabi.lib : dma.obj (.text:DMA_configMode)
+                  00008c5f    0000007f                        : interrupt.obj (.text:Interrupt_clearIFR)
+                  00008cde    00000075     board.obj (.text:EPWM_setADCTriggerSource)
+                  00008d53    00000073     driverlib_eabi.lib : sysctl.obj (.text:DCC_setCounterSeeds)
+                  00008dc6    00000072     board.obj (.text:PinMux_init)
+                  00008e38    00000064     main.obj (.text:main)
+                  00008e9c    0000005e     driverlib_eabi.lib : sysctl.obj (.text:SysCtl_getClock)
+                  00008efa    00000056     export.obj (.text:INT_myMCUSignalSight0_transferLayer_SCI_RX_ISR)
+                  00008f50    00000052     driverlib_eabi.lib : gpio.obj (.text:GPIO_setPadConfig)
+                  00008fa2    00000051     device.obj (.text:Device_init)
+                  00008ff3    0000000d     driverlib_eabi.lib : interrupt.obj (.text:Interrupt_disableGlobal)
 
 .text.3    0    00009000    00000800     
                   00009000    0000004e     driverlib_eabi.lib : interrupt.obj (.text:Interrupt_disable)
@@ -160,7 +160,7 @@ ramgs0     1    0000c000    00000258     UNINITIALIZED
                   00009783    0000002b     rts2800_fpu32_eabi.lib : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit)
                   000097ae    00000029                            : exit.c.obj (.text)
                   000097d7    00000028     board.obj (.text:EPWM_setInterruptEventCount)
-                  000097ff    00000001     rts2800_fpu32_eabi.lib : startup.c.obj (.text)
+                  000097ff    00000001     export.obj (.text:EXPORT_init)
 
 .text.4    0    00009800    00000800     
                   00009800    00000027     board.obj (.text:EPWM_setSyncOutPulseMode)
@@ -207,83 +207,83 @@ ramgs0     1    0000c000    00000258     UNINITIALIZED
                   00009ce5    00000018     board.obj (.text:SCI_resetRxFIFO)
                   00009cfd    00000018     board.obj (.text:SCI_resetTxFIFO)
                   00009d15    00000018     main.obj (.text:SysCtl_disablePeripheral)
-                  00009d2d    00000017     driverlib_eabi.lib : sysctl.obj (.text:SysCtl_enablePeripheral)
-                  00009d44    00000017     main.obj (.text:SysCtl_enablePeripheral)
-                  00009d5b    00000017     rts2800_fpu32_eabi.lib : boot28.asm.obj (.text)
-                  00009d72    00000016     driverlib_eabi.lib : sysctl.obj (.text:DCC_disableDoneSignal)
-                  00009d88    00000016                        : sysctl.obj (.text:DCC_enableDoneSignal)
-                  00009d9e    00000016                        : interrupt.obj (.text:Interrupt_defaultHandler)
-                  00009db4    00000015                        : sysctl.obj (.text:DCC_clearDoneFlag)
-                  00009dc9    00000015                        : sysctl.obj (.text:DCC_clearErrorFlag)
-                  00009dde    00000015                        : sysctl.obj (.text:DCC_disableErrorSignal)
-                  00009df3    00000015                        : sysctl.obj (.text:DCC_enableErrorSignal)
-                  00009e08    00000015     board.obj (.text:DMA_setEmulationMode)
-                  00009e1d    00000015     main.obj (.text:DMA_startChannel)
-                  00009e32    00000015     board.obj (.text:DMA_stopChannel)
-                  00009e47    00000015     device.obj (.text:GPIO_unlockPortConfig)
-                  00009e5c    00000014     driverlib_eabi.lib : sysctl.obj (.text:DCC_disableModule)
-                  00009e70    00000014                        : sysctl.obj (.text:DCC_enableModule)
-                  00009e84    00000014     board.obj (.text:EPWM_setTimeBaseCounterMode)
-                  00009e98    00000014     board.obj (.text:EPWM_setTimeBasePeriod)
-                  00009eac    00000014     driverlib_eabi.lib : gpio.obj (.text:GPIO_isPinValid)
-                  00009ec0    00000014     main.obj (.text:GPIO_isPinValid)
-                  00009ed4    00000014     export.obj (.text:SCI_getTxFIFOStatus)
-                  00009ee8    00000014     device.obj (.text:SysCtl_deviceCal)
-                  00009efc    00000013     board.obj (.text:DMA_enableTrigger)
-                  00009f0f    00000013     main.obj (.text:EPWM_clearEventTriggerInterruptFlag)
-                  00009f22    00000013     board.obj (.text:EPWM_enableInterrupt)
-                  00009f35    00000013     board.obj (.text:SCI_clearOverflowStatus)
-                  00009f48    00000013     export.obj (.text:SCI_clearOverflowStatus)
-                  00009f5b    00000013     board.obj (.text:SCI_enableModule)
-                  00009f6e    00000013     driverlib_eabi.lib : sci.obj (.text:SCI_enableModule)
-                  00009f81    00000013     board.obj (.text:SCI_isBaseValid)
-                  00009f94    00000013     driverlib_eabi.lib : sci.obj (.text:SCI_isBaseValid)
-                  00009fa7    00000013     export.obj (.text:SCI_isBaseValid)
-                  00009fba    00000012     board.obj (.text:EPWM_setTimeBaseCounter)
-                  00009fcc    00000012     signalsight.obj (.text:SIGNALSIGHT_sendAcknowledge)
-                  00009fde    00000012     board.obj (.text:SysCtl_setSyncOutputConfig)
-                  00009ff0    00000010     driverlib_eabi.lib : sysctl.obj (.text:DCC_isBaseValid)
+                  00009d2d    00000017     device.obj (.text:SysCtl_enablePeripheral)
+                  00009d44    00000017     driverlib_eabi.lib : sysctl.obj (.text:SysCtl_enablePeripheral)
+                  00009d5b    00000017     main.obj (.text:SysCtl_enablePeripheral)
+                  00009d72    00000017     rts2800_fpu32_eabi.lib : boot28.asm.obj (.text)
+                  00009d89    00000016     driverlib_eabi.lib : sysctl.obj (.text:DCC_disableDoneSignal)
+                  00009d9f    00000016                        : sysctl.obj (.text:DCC_enableDoneSignal)
+                  00009db5    00000016                        : interrupt.obj (.text:Interrupt_defaultHandler)
+                  00009dcb    00000015                        : sysctl.obj (.text:DCC_clearDoneFlag)
+                  00009de0    00000015                        : sysctl.obj (.text:DCC_clearErrorFlag)
+                  00009df5    00000015                        : sysctl.obj (.text:DCC_disableErrorSignal)
+                  00009e0a    00000015                        : sysctl.obj (.text:DCC_enableErrorSignal)
+                  00009e1f    00000015     board.obj (.text:DMA_setEmulationMode)
+                  00009e34    00000015     main.obj (.text:DMA_startChannel)
+                  00009e49    00000015     board.obj (.text:DMA_stopChannel)
+                  00009e5e    00000015     device.obj (.text:GPIO_unlockPortConfig)
+                  00009e73    00000014     driverlib_eabi.lib : sysctl.obj (.text:DCC_disableModule)
+                  00009e87    00000014                        : sysctl.obj (.text:DCC_enableModule)
+                  00009e9b    00000014     board.obj (.text:EPWM_setTimeBaseCounterMode)
+                  00009eaf    00000014     board.obj (.text:EPWM_setTimeBasePeriod)
+                  00009ec3    00000014     driverlib_eabi.lib : gpio.obj (.text:GPIO_isPinValid)
+                  00009ed7    00000014     main.obj (.text:GPIO_isPinValid)
+                  00009eeb    00000014     export.obj (.text:SCI_getTxFIFOStatus)
+                  00009eff    00000014     device.obj (.text:SysCtl_deviceCal)
+                  00009f13    00000013     board.obj (.text:DMA_enableTrigger)
+                  00009f26    00000013     main.obj (.text:EPWM_clearEventTriggerInterruptFlag)
+                  00009f39    00000013     board.obj (.text:EPWM_enableInterrupt)
+                  00009f4c    00000013     board.obj (.text:SCI_clearOverflowStatus)
+                  00009f5f    00000013     export.obj (.text:SCI_clearOverflowStatus)
+                  00009f72    00000013     board.obj (.text:SCI_enableModule)
+                  00009f85    00000013     driverlib_eabi.lib : sci.obj (.text:SCI_enableModule)
+                  00009f98    00000013     board.obj (.text:SCI_isBaseValid)
+                  00009fab    00000013     driverlib_eabi.lib : sci.obj (.text:SCI_isBaseValid)
+                  00009fbe    00000013     export.obj (.text:SCI_isBaseValid)
+                  00009fd1    00000012     board.obj (.text:EPWM_setTimeBaseCounter)
+                  00009fe3    00000012     signalsight.obj (.text:SIGNALSIGHT_sendAcknowledge)
+                  00009ff5    0000000b     device.obj (.text:SysCtl_disableWatchdog)
 
-.text.5    0    0000a000    000001a3     
-                  0000a000    00000012     rts2800_fpu32_eabi.lib : args_main.c.obj (.text)
-                  0000a012    00000011     board.obj (.text:Board_init)
-                  0000a023    00000011     board.obj (.text:EPWM_disablePhaseShiftLoad)
-                  0000a034    00000011     board.obj (.text:EPWM_enablePhaseShiftLoad)
-                  0000a045    00000011     board.obj (.text:SCI_disableLoopback)
-                  0000a056    00000011     export.obj (.text:SCI_readCharNonBlocking)
-                  0000a067    00000011     sopwm.obj (.text:SOPWM_schedISR)
-                  0000a078    00000010     device.obj (.text:Device_initGPIO)
-                  0000a088    0000000f     device.obj (.text:ASysCtl_disableDCDC)
-                  0000a097    0000000f     board.obj (.text:Interrupt_register)
-                  0000a0a6    0000000f     main.obj (.text:Interrupt_register)
-                  0000a0b5    0000000e     signalsight.obj (.text:SIGNALSIGHT_getVariableAddressAtHashIndex)
-                  0000a0c3    0000000d     driverlib_eabi.lib : interrupt.obj (.text:Interrupt_disableGlobal)
-                  0000a0d0    0000000d                        : interrupt.obj (.text:Interrupt_enableGlobal)
-                  0000a0dd    0000000d     device.obj (.text:SysCtl_setLowSpeedClock)
-                  0000a0ea    0000000d     rts2800_fpu32_eabi.lib : copy_zero_init.c.obj (.text:decompress:ZI:__TI_zero_init_nomemset)
-                  0000a0f7    0000000c     board.obj (.text:SysCtl_enableExtADCSOCSource)
-                  0000a103    0000000b     device.obj (.text:SysCtl_disableWatchdog)
-                  0000a10e    0000000b     driverlib_eabi.lib : sysctl.obj (.text:SysCtl_isMCDClockFailureDetected)
-                  0000a119    0000000a     board.obj (.text:DMA_initController)
-                  0000a123    0000000a     driverlib_eabi.lib : interrupt.obj (.text:Interrupt_illegalOperationHandler)
-                  0000a12d    0000000a                        : interrupt.obj (.text:Interrupt_nmiHandler)
-                  0000a137    00000009     board.obj (.text:DMA_init)
-                  0000a140    00000009     export.obj (.text:EXPORT_transmitCharBlocking)
-                  0000a149    00000009     signalsight.obj (.text:SIGNALSIGHT_resetStates)
-                  0000a152    00000009     rts2800_fpu32_eabi.lib : _lock.c.obj (.text)
-                  0000a15b    00000008                            : copy_decompress_none.c.obj (.text:decompress:none)
-                  0000a163    00000008     f28004x_codestartbranch.obj (.text)
-                  0000a16b    00000007     driverlib_eabi.lib : sysctl.obj (.text:SysCtl_resetMCD)
-                  0000a172    00000007     device.obj (.text:__error__)
-                  0000a179    00000006     export.obj (.text:Interrupt_clearACKGroup)
-                  0000a17f    00000006     main.obj (.text:Interrupt_clearACKGroup)
-                  0000a185    00000005     board.obj (.text:INPUTXBAR_init)
-                  0000a18a    00000005     signalsight.obj (.text:SIGNALSIGHT_init)
-                  0000a18f    00000005     sopwm.obj (.text:SOPWM_CommitSchedule)
-                  0000a194    00000005     board.obj (.text:myINPUTXBARINPUT0_init)
-                  0000a199    00000005     board.obj (.text:myINPUTXBARINPUT1_init)
-                  0000a19e    00000003     board.obj (.text:SCI_init)
-                  0000a1a1    00000002     rts2800_fpu32_eabi.lib : pre_init.c.obj (.text)
+.text.5    0    0000a000    000001ab     
+                  0000a000    00000012     board.obj (.text:SysCtl_setSyncOutputConfig)
+                  0000a012    00000012     rts2800_fpu32_eabi.lib : args_main.c.obj (.text)
+                  0000a024    00000011     board.obj (.text:Board_init)
+                  0000a035    00000011     board.obj (.text:EPWM_disablePhaseShiftLoad)
+                  0000a046    00000011     board.obj (.text:EPWM_enablePhaseShiftLoad)
+                  0000a057    00000011     board.obj (.text:SCI_disableLoopback)
+                  0000a068    00000011     export.obj (.text:SCI_readCharNonBlocking)
+                  0000a079    00000011     sopwm.obj (.text:SOPWM_schedISR)
+                  0000a08a    00000010     driverlib_eabi.lib : sysctl.obj (.text:DCC_isBaseValid)
+                  0000a09a    00000010     device.obj (.text:Device_initGPIO)
+                  0000a0aa    0000000f     device.obj (.text:ASysCtl_disableDCDC)
+                  0000a0b9    0000000f     board.obj (.text:Interrupt_register)
+                  0000a0c8    0000000f     main.obj (.text:Interrupt_register)
+                  0000a0d7    0000000e     signalsight.obj (.text:SIGNALSIGHT_getVariableAddressAtHashIndex)
+                  0000a0e5    0000000d     driverlib_eabi.lib : interrupt.obj (.text:Interrupt_enableGlobal)
+                  0000a0f2    0000000d     device.obj (.text:SysCtl_setLowSpeedClock)
+                  0000a0ff    0000000d     rts2800_fpu32_eabi.lib : copy_zero_init.c.obj (.text:decompress:ZI:__TI_zero_init_nomemset)
+                  0000a10c    0000000c     board.obj (.text:SysCtl_enableExtADCSOCSource)
+                  0000a118    0000000b     driverlib_eabi.lib : sysctl.obj (.text:SysCtl_isMCDClockFailureDetected)
+                  0000a123    0000000a     board.obj (.text:DMA_initController)
+                  0000a12d    0000000a     driverlib_eabi.lib : interrupt.obj (.text:Interrupt_illegalOperationHandler)
+                  0000a137    0000000a                        : interrupt.obj (.text:Interrupt_nmiHandler)
+                  0000a141    00000009     board.obj (.text:DMA_init)
+                  0000a14a    00000009     export.obj (.text:EXPORT_transmitCharBlocking)
+                  0000a153    00000009     signalsight.obj (.text:SIGNALSIGHT_resetStates)
+                  0000a15c    00000009     rts2800_fpu32_eabi.lib : _lock.c.obj (.text)
+                  0000a165    00000008                            : copy_decompress_none.c.obj (.text:decompress:none)
+                  0000a16d    00000008     f28004x_codestartbranch.obj (.text)
+                  0000a175    00000007     driverlib_eabi.lib : sysctl.obj (.text:SysCtl_resetMCD)
+                  0000a17c    00000007     device.obj (.text:__error__)
+                  0000a183    00000006     export.obj (.text:Interrupt_clearACKGroup)
+                  0000a189    00000006     main.obj (.text:Interrupt_clearACKGroup)
+                  0000a18f    00000005     board.obj (.text:INPUTXBAR_init)
+                  0000a194    00000005     signalsight.obj (.text:SIGNALSIGHT_init)
+                  0000a199    00000005     sopwm.obj (.text:SOPWM_CommitSchedule)
+                  0000a19e    00000005     board.obj (.text:myINPUTXBARINPUT0_init)
+                  0000a1a3    00000005     board.obj (.text:myINPUTXBARINPUT1_init)
+                  0000a1a8    00000002     rts2800_fpu32_eabi.lib : pre_init.c.obj (.text)
+                  0000a1aa    00000001                            : startup.c.obj (.text)
 
 .const.1   1    0000a800    000007d6     
                   0000a800    00000578     sopwm.obj (.const:SOPWM_LUT_N15)
@@ -301,9 +301,8 @@ ramgs0     1    0000c000    00000258     UNINITIALIZED
 .data.2    1    0000b7d0    00000030     UNINITIALIZED
                   0000b7d0    00000012     signalsight_hash.obj (.data:SSHASH_hash_table)
                   0000b7e2    00000010     export.obj (.data:exportRXData)
-                  0000b7f2    00000006     main.obj (.data)
-                  0000b7f8    00000006     rts2800_fpu32_eabi.lib : exit.c.obj (.data)
-                  0000b7fe    00000002                            : _lock.c.obj (.data:_lock)
+                  0000b7f2    00000008     main.obj (.data)
+                  0000b7fa    00000006     rts2800_fpu32_eabi.lib : exit.c.obj (.data)
 
 .const.3   1    00010000    00000920     
                   00010000    000003e8     sopwm.obj (.const:SOPWM_LUT_N11)
@@ -322,7 +321,7 @@ ramgs0     1    0000c000    00000258     UNINITIALIZED
                   000108db    00000001     --HOLE-- [fill = 0]
                   000108dc    00000044     export.obj (.const:.string)
 
-.data.3    1    00010920    0000032a     UNINITIALIZED
+.data.3    1    00010920    0000032c     UNINITIALIZED
                   00010920    00000064     signalsight.obj (.data:SS_streamA_buffer2)
                   00010984    00000064     signalsight.obj (.data:SS_streamA_buffer)
                   000109e8    00000064     signalsight.obj (.data:SS_streamB_buffer2)
@@ -333,16 +332,17 @@ ramgs0     1    0000c000    00000258     UNINITIALIZED
                   00010bdc    00000064     signalsight.obj (.data:SS_streamD_buffer)
                   00010c40    00000004     signalsight.obj (.data:SS_currentPlotHashIndices)
                   00010c44    00000004     signalsight.obj (.data:SS_streamToggleStates)
-                  00010c48    00000002     rts2800_fpu32_eabi.lib : _lock.c.obj (.data:_unlock)
+                  00010c48    00000002     rts2800_fpu32_eabi.lib : _lock.c.obj (.data:_lock)
+                  00010c4a    00000002                            : _lock.c.obj (.data:_unlock)
 
 MODULE SUMMARY
 
        Module                        code   ro data   rw data
        ------                        ----   -------   -------
     .\
-       main.obj                      532    207       6      
+       main.obj                      542    207       8      
     +--+-----------------------------+------+---------+---------+
-       Total:                        532    207       6      
+       Total:                        542    207       8      
                                                              
     .\device\
        device.obj                    431    91        0      
@@ -356,10 +356,10 @@ MODULE SUMMARY
        Total:                        711    5006      632    
                                                              
     .\syscfg\
-       board.obj                     2763   276       0      
+       board.obj                     2761   276       0      
        transfer_utils.obj            33     0         0      
     +--+-----------------------------+------+---------+---------+
-       Total:                        2796   276       0      
+       Total:                        2794   276       0      
                                                              
     .\syscfg\export\
        export.obj                    262    68        16     
@@ -398,23 +398,23 @@ MODULE SUMMARY
        Total:                        236    0         10     
                                                              
        Stack:                        0      0         1016   
-       Linker Generated:             0      80        0      
+       Linker Generated:             0      78        0      
     +--+-----------------------------+------+---------+---------+
-       Grand Total:                  8617   6417      2516   
+       Grand Total:                  8625   6415      2518   
 
 
 LINKER GENERATED COPY TABLES
 
-__TI_cinit_table @ 0000013a records: 4, size/record: 4, table size: 16
-	.data.2: load addr=000000fa, load size=0000001e bytes, run addr=0000b7d0, run size=00000030 bytes, compression=lzss
-	.data.1: load addr=00000118, load size=0000000c bytes, run addr=0000afd6, run size=0000002a bytes, compression=lzss
-	.data.3: load addr=00000124, load size=0000000c bytes, run addr=00010920, run size=0000032a bytes, compression=lzss
-	ramgs0: load addr=00000136, load size=00000004 bytes, run addr=0000c000, run size=00000258 bytes, compression=zero_init
+__TI_cinit_table @ 00000138 records: 4, size/record: 4, table size: 16
+	.data.2: load addr=000000fa, load size=0000001c bytes, run addr=0000b7d0, run size=00000030 bytes, compression=lzss
+	.data.1: load addr=00000116, load size=0000000c bytes, run addr=0000afd6, run size=0000002a bytes, compression=lzss
+	.data.3: load addr=00000122, load size=0000000c bytes, run addr=00010920, run size=0000032c bytes, compression=lzss
+	ramgs0: load addr=00000134, load size=00000004 bytes, run addr=0000c000, run size=00000258 bytes, compression=zero_init
 
 
 LINKER GENERATED HANDLER TABLE
 
-__TI_handler_table @ 00000130 records: 3, size/record: 2, table size: 6
+__TI_handler_table @ 0000012e records: 3, size/record: 2, table size: 6
 	index: 0, handler: __TI_decompress_lzss
 	index: 1, handler: __TI_decompress_none
 	index: 2, handler: __TI_zero_init
@@ -465,12 +465,13 @@ address     data page           name
 0000b7e2     2df (0000b7c0)     exportRXData
 0000b7f2     2df (0000b7c0)     dbg_cmpa_snapshot
 0000b7f3     2df (0000b7c0)     dbg_cmpb_snapshot
-0000b7f4     2df (0000b7c0)     sopwm_m_cmd
-0000b7f6     2df (0000b7c0)     dbg_isr_count
-0000b7f8     2df (0000b7c0)     __TI_enable_exit_profile_output
-0000b7fa     2df (0000b7c0)     __TI_cleanup_ptr
-0000b7fc     2df (0000b7c0)     __TI_dtors_ptr
-0000b7fe     2df (0000b7c0)     _lock
+0000b7f4     2df (0000b7c0)     dbg_phB_cmpa_slot0
+0000b7f5     2df (0000b7c0)     dbg_phC_cmpa_slot17
+0000b7f6     2df (0000b7c0)     sopwm_m_cmd
+0000b7f8     2df (0000b7c0)     dbg_isr_count
+0000b7fa     2df (0000b7c0)     __TI_enable_exit_profile_output
+0000b7fc     2df (0000b7c0)     __TI_cleanup_ptr
+0000b7fe     2df (0000b7c0)     __TI_dtors_ptr
 
 0000c000     300 (0000c000)     sopwm_sched
 
@@ -494,67 +495,68 @@ address     data page           name
 
 00010c40     431 (00010c40)     SS_currentPlotHashIndices
 00010c44     431 (00010c40)     SS_streamToggleStates
-00010c48     431 (00010c40)     _unlock
+00010c48     431 (00010c40)     _lock
+00010c4a     431 (00010c40)     _unlock
 
 
 GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
 
 page  address   name                                          
 ----  -------   ----                                          
-0     0000a012  Board_init                                    
+0     0000a024  Board_init                                    
 0     000097ae  C$$EXIT                                       
 0     00009874  DMA_configAddresses                           
 0     000095c6  DMA_configBurst                               
-0     00008b1d  DMA_configMode                                
+0     00008bc2  DMA_configMode                                
 0     000093b9  DMA_configTransfer                            
 0     0000912e  DMA_configWrap                                
-0     0000a137  DMA_init                                      
-0     0000866d  Device_enableAllPeripherals                   
-0     00008f98  Device_init                                   
-0     0000a078  Device_initGPIO                               
+0     0000a141  DMA_init                                      
+0     0000866b  Device_enableAllPeripherals                   
+0     00008fa2  Device_init                                   
+0     0000a09a  Device_initGPIO                               
 0     00008000  EPWM_init                                     
 0     000093f5  EXPORTPACKAGE_sendFloatArrayAsByteArray       
-0     0000858b  EXPORTPACKAGE_takeActionOnMessage             
-0     000087ff  EXPORT_init                                   
+0     00008589  EXPORTPACKAGE_takeActionOnMessage             
+0     000097ff  EXPORT_init                                   
 0     00009a77  EXPORT_receivedData                           
-0     0000a140  EXPORT_transmitCharBlocking                   
+0     0000a14a  EXPORT_transmitCharBlocking                   
 0     000094e1  GPIO_setAnalogMode                            
 0     000096a2  GPIO_setDirectionMode                         
-0     00008f46  GPIO_setPadConfig                             
+0     00008f50  GPIO_setPadConfig                             
 0     000095fd  GPIO_setPinConfig                             
 0     00009634  GPIO_setQualificationMode                     
-0     0000a185  INPUTXBAR_init                                
+0     0000a18f  INPUTXBAR_init                                
 0     00009c0b  INTERRUPT_init                                
-0     00008ef0  INT_myMCUSignalSight0_transferLayer_SCI_RX_ISR
+0     00008efa  INT_myMCUSignalSight0_transferLayer_SCI_RX_ISR
 0     00009431  INT_myMCUSignalSight0_transferLayer_SCI_TX_ISR
-0     00009d9e  Interrupt_defaultHandler                      
+0     00009db5  Interrupt_defaultHandler                      
 0     00009000  Interrupt_disable                             
 0     0000966b  Interrupt_enable                              
-0     0000a123  Interrupt_illegalOperationHandler             
+0     0000a12d  Interrupt_illegalOperationHandler             
 0     0000937c  Interrupt_initModule                          
 0     00009ad2  Interrupt_initVectorTable                     
-0     0000a12d  Interrupt_nmiHandler                          
-0     00008dbc  PinMux_init                                   
+0     0000a137  Interrupt_nmiHandler                          
+0     00008dc6  PinMux_init                                   
 0     00009174  SCI_clearInterruptStatus                      
 0     000091b9  SCI_enableInterrupt                           
-0     0000a19e  SCI_init                                      
+0     000087fd  SCI_init                                      
 0     0000933e  SCI_setConfig                                 
 0     000090e6  SIGNALSIGHT_capturePlotData                   
-0     0000a0b5  SIGNALSIGHT_getVariableAddressAtHashIndex     
-0     0000a18a  SIGNALSIGHT_init                              
+0     0000a0d7  SIGNALSIGHT_getVariableAddressAtHashIndex     
+0     0000a194  SIGNALSIGHT_init                              
 0     00008800  SIGNALSIGHT_queueUpStreamData                 
-0     0000a149  SIGNALSIGHT_resetStates                       
-0     00009fcc  SIGNALSIGHT_sendAcknowledge                   
-0     000082ff  SIGNALSIGHT_sendPlotData                      
-0     00008471  SOPWM_BuildSchedule                           
-0     0000a18f  SOPWM_CommitSchedule                          
+0     0000a153  SIGNALSIGHT_resetStates                       
+0     00009fe3  SIGNALSIGHT_sendAcknowledge                   
+0     000082fd  SIGNALSIGHT_sendPlotData                      
+0     0000846f  SOPWM_BuildSchedule                           
+0     0000a199  SOPWM_CommitSchedule                          
 0     00009b65  SOPWM_InitSchedule                            
 1     00010000  SOPWM_LUT_N11                                 
 1     0000b000  SOPWM_LUT_N13                                 
 1     0000a800  SOPWM_LUT_N15                                 
 1     0000ad78  SOPWM_LUT_N7                                  
 1     0000b4b0  SOPWM_LUT_N9                                  
-0     0000a067  SOPWM_schedISR                                
+0     0000a079  SOPWM_schedISR                                
 1     0000b7d0  SSHASH_hash_table                             
 1     0000aff8  SS_bufferElementIndex                         
 1     0000affc  SS_bufferElementIndex2                        
@@ -578,58 +580,60 @@ page  address   name
 1     0000affe  SS_writeBuffer1readBuffer2                    
 0     00009af0  SYNC_init                                     
 0     000000f6  SysCtl_delay                                  
-0     00008e92  SysCtl_getClock                               
+0     00008e9c  SysCtl_getClock                               
 0     00009bf1  SysCtl_getLowSpeedClock                       
 0     00008a60  SysCtl_isPLLValid                             
 0     0000904e  SysCtl_selectOscSource                        
 0     000092c0  SysCtl_selectXTAL                             
 0     000098be  SysCtl_selectXTALSingleEnded                  
 0     00008998  SysCtl_setClock                               
-0     0000013a  __TI_CINIT_Base                               
-0     0000014a  __TI_CINIT_Limit                              
-0     0000014a  __TI_CINIT_Warm                               
-0     00000130  __TI_Handler_Table_Base                       
-0     00000136  __TI_Handler_Table_Limit                      
+0     00000138  __TI_CINIT_Base                               
+0     00000148  __TI_CINIT_Limit                              
+0     00000148  __TI_CINIT_Warm                               
+0     0000012e  __TI_Handler_Table_Base                       
+0     00000134  __TI_Handler_Table_Limit                      
 1     000007f8  __TI_STACK_END                                
 abs   000003f8  __TI_STACK_SIZE                               
 0     00009783  __TI_auto_init_nobinit_nopinit                
-1     0000b7fa  __TI_cleanup_ptr                              
+1     0000b7fc  __TI_cleanup_ptr                              
 0     000096d3  __TI_decompress_lzss                          
-0     0000a15b  __TI_decompress_none                          
-1     0000b7fc  __TI_dtors_ptr                                
-1     0000b7f8  __TI_enable_exit_profile_output               
+0     0000a165  __TI_decompress_none                          
+1     0000b7fe  __TI_dtors_ptr                                
+1     0000b7fa  __TI_enable_exit_profile_output               
 abs   ffffffff  __TI_pprof_out_hndl                           
 abs   ffffffff  __TI_prof_data_size                           
 abs   ffffffff  __TI_prof_data_start                          
-0     0000a0ea  __TI_zero_init_nomemset                       
+0     0000a0ff  __TI_zero_init_nomemset                       
 abs   ffffffff  __c_args__                                    
-0     0000a172  __error__                                     
+0     0000a17c  __error__                                     
 1     00000400  __stack                                       
-0     0000a000  _args_main                                    
-0     00009d5b  _c_int00                                      
-1     0000b7fe  _lock                                         
-0     0000a15a  _nop                                          
-0     0000a156  _register_lock                                
-0     0000a152  _register_unlock                              
-0     000097ff  _system_post_cinit                            
-0     0000a1a1  _system_pre_init                              
-1     00010c48  _unlock                                       
+0     0000a012  _args_main                                    
+0     00009d72  _c_int00                                      
+1     00010c48  _lock                                         
+0     0000a164  _nop                                          
+0     0000a160  _register_lock                                
+0     0000a15c  _register_unlock                              
+0     0000a1aa  _system_post_cinit                            
+0     0000a1a8  _system_pre_init                              
+1     00010c4a  _unlock                                       
 0     000097ae  abort                                         
 0     00000000  code_start                                    
 1     0000b7f2  dbg_cmpa_snapshot                             
 1     0000b7f3  dbg_cmpb_snapshot                             
-1     0000b7f6  dbg_isr_count                                 
-0     00008bba  epwm1ISR                                      
+1     0000b7f8  dbg_isr_count                                 
+1     0000b7f4  dbg_phB_cmpa_slot0                            
+1     0000b7f5  dbg_phC_cmpa_slot17                           
+0     00008b1d  epwm1ISR                                      
 0     000097b0  exit                                          
 1     0000b7e2  exportRXData                                  
 0     000099d8  f32toBytes                                    
-0     00008e2e  main                                          
+0     00008e38  main                                          
 0     00009a19  memcpy                                        
 0     0000951b  myDMA0_init                                   
 0     00009554  myDMA1_init                                   
 0     0000958d  myDMA2_init                                   
-0     0000a194  myINPUTXBARINPUT0_init                        
-0     0000a199  myINPUTXBARINPUT1_init                        
+0     0000a19e  myINPUTXBARINPUT0_init                        
+0     0000a1a3  myINPUTXBARINPUT1_init                        
 0     000091fd  myMCUSignalSight0_transferLayer_SCI_init      
 1     0000afe8  sopwm_angle1                                  
 1     0000afea  sopwm_angle2                                  
@@ -644,7 +648,7 @@ abs   ffffffff  __c_args__
 1     0000afdc  sopwm_init_done                               
 1     0000afdd  sopwm_lut_n_base                              
 1     0000afe4  sopwm_m                                       
-1     0000b7f4  sopwm_m_cmd                                   
+1     0000b7f6  sopwm_m_cmd                                   
 1     0000afd9  sopwm_num_angles                              
 1     0000c000  sopwm_sched                                   
 1     0000afda  sopwm_sched_active                            
@@ -657,28 +661,28 @@ page  address   name
 ----  -------   ----                                          
 0     00000000  code_start                                    
 0     000000f6  SysCtl_delay                                  
-0     00000130  __TI_Handler_Table_Base                       
-0     00000136  __TI_Handler_Table_Limit                      
-0     0000013a  __TI_CINIT_Base                               
-0     0000014a  __TI_CINIT_Limit                              
-0     0000014a  __TI_CINIT_Warm                               
+0     0000012e  __TI_Handler_Table_Base                       
+0     00000134  __TI_Handler_Table_Limit                      
+0     00000138  __TI_CINIT_Base                               
+0     00000148  __TI_CINIT_Limit                              
+0     00000148  __TI_CINIT_Warm                               
 0     00008000  EPWM_init                                     
-0     000082ff  SIGNALSIGHT_sendPlotData                      
-0     00008471  SOPWM_BuildSchedule                           
-0     0000858b  EXPORTPACKAGE_takeActionOnMessage             
-0     0000866d  Device_enableAllPeripherals                   
-0     000087ff  EXPORT_init                                   
+0     000082fd  SIGNALSIGHT_sendPlotData                      
+0     0000846f  SOPWM_BuildSchedule                           
+0     00008589  EXPORTPACKAGE_takeActionOnMessage             
+0     0000866b  Device_enableAllPeripherals                   
+0     000087fd  SCI_init                                      
 0     00008800  SIGNALSIGHT_queueUpStreamData                 
 0     00008998  SysCtl_setClock                               
 0     00008a60  SysCtl_isPLLValid                             
-0     00008b1d  DMA_configMode                                
-0     00008bba  epwm1ISR                                      
-0     00008dbc  PinMux_init                                   
-0     00008e2e  main                                          
-0     00008e92  SysCtl_getClock                               
-0     00008ef0  INT_myMCUSignalSight0_transferLayer_SCI_RX_ISR
-0     00008f46  GPIO_setPadConfig                             
-0     00008f98  Device_init                                   
+0     00008b1d  epwm1ISR                                      
+0     00008bc2  DMA_configMode                                
+0     00008dc6  PinMux_init                                   
+0     00008e38  main                                          
+0     00008e9c  SysCtl_getClock                               
+0     00008efa  INT_myMCUSignalSight0_transferLayer_SCI_RX_ISR
+0     00008f50  GPIO_setPadConfig                             
+0     00008fa2  Device_init                                   
 0     00009000  Interrupt_disable                             
 0     0000904e  SysCtl_selectOscSource                        
 0     000090e6  SIGNALSIGHT_capturePlotData                   
@@ -706,7 +710,7 @@ page  address   name
 0     000097ae  C$$EXIT                                       
 0     000097ae  abort                                         
 0     000097b0  exit                                          
-0     000097ff  _system_post_cinit                            
+0     000097ff  EXPORT_init                                   
 0     00009874  DMA_configAddresses                           
 0     000098be  SysCtl_selectXTALSingleEnded                  
 0     000099d8  f32toBytes                                    
@@ -717,32 +721,32 @@ page  address   name
 0     00009b65  SOPWM_InitSchedule                            
 0     00009bf1  SysCtl_getLowSpeedClock                       
 0     00009c0b  INTERRUPT_init                                
-0     00009d5b  _c_int00                                      
-0     00009d9e  Interrupt_defaultHandler                      
-0     00009fcc  SIGNALSIGHT_sendAcknowledge                   
-0     0000a000  _args_main                                    
-0     0000a012  Board_init                                    
-0     0000a067  SOPWM_schedISR                                
-0     0000a078  Device_initGPIO                               
-0     0000a0b5  SIGNALSIGHT_getVariableAddressAtHashIndex     
-0     0000a0ea  __TI_zero_init_nomemset                       
-0     0000a123  Interrupt_illegalOperationHandler             
-0     0000a12d  Interrupt_nmiHandler                          
-0     0000a137  DMA_init                                      
-0     0000a140  EXPORT_transmitCharBlocking                   
-0     0000a149  SIGNALSIGHT_resetStates                       
-0     0000a152  _register_unlock                              
-0     0000a156  _register_lock                                
-0     0000a15a  _nop                                          
-0     0000a15b  __TI_decompress_none                          
-0     0000a172  __error__                                     
-0     0000a185  INPUTXBAR_init                                
-0     0000a18a  SIGNALSIGHT_init                              
-0     0000a18f  SOPWM_CommitSchedule                          
-0     0000a194  myINPUTXBARINPUT0_init                        
-0     0000a199  myINPUTXBARINPUT1_init                        
-0     0000a19e  SCI_init                                      
-0     0000a1a1  _system_pre_init                              
+0     00009d72  _c_int00                                      
+0     00009db5  Interrupt_defaultHandler                      
+0     00009fe3  SIGNALSIGHT_sendAcknowledge                   
+0     0000a012  _args_main                                    
+0     0000a024  Board_init                                    
+0     0000a079  SOPWM_schedISR                                
+0     0000a09a  Device_initGPIO                               
+0     0000a0d7  SIGNALSIGHT_getVariableAddressAtHashIndex     
+0     0000a0ff  __TI_zero_init_nomemset                       
+0     0000a12d  Interrupt_illegalOperationHandler             
+0     0000a137  Interrupt_nmiHandler                          
+0     0000a141  DMA_init                                      
+0     0000a14a  EXPORT_transmitCharBlocking                   
+0     0000a153  SIGNALSIGHT_resetStates                       
+0     0000a15c  _register_unlock                              
+0     0000a160  _register_lock                                
+0     0000a164  _nop                                          
+0     0000a165  __TI_decompress_none                          
+0     0000a17c  __error__                                     
+0     0000a18f  INPUTXBAR_init                                
+0     0000a194  SIGNALSIGHT_init                              
+0     0000a199  SOPWM_CommitSchedule                          
+0     0000a19e  myINPUTXBARINPUT0_init                        
+0     0000a1a3  myINPUTXBARINPUT1_init                        
+0     0000a1a8  _system_pre_init                              
+0     0000a1aa  _system_post_cinit                            
 1     00000400  __stack                                       
 1     000007f8  __TI_STACK_END                                
 1     0000a800  SOPWM_LUT_N15                                 
@@ -779,12 +783,13 @@ page  address   name
 1     0000b7e2  exportRXData                                  
 1     0000b7f2  dbg_cmpa_snapshot                             
 1     0000b7f3  dbg_cmpb_snapshot                             
-1     0000b7f4  sopwm_m_cmd                                   
-1     0000b7f6  dbg_isr_count                                 
-1     0000b7f8  __TI_enable_exit_profile_output               
-1     0000b7fa  __TI_cleanup_ptr                              
-1     0000b7fc  __TI_dtors_ptr                                
-1     0000b7fe  _lock                                         
+1     0000b7f4  dbg_phB_cmpa_slot0                            
+1     0000b7f5  dbg_phC_cmpa_slot17                           
+1     0000b7f6  sopwm_m_cmd                                   
+1     0000b7f8  dbg_isr_count                                 
+1     0000b7fa  __TI_enable_exit_profile_output               
+1     0000b7fc  __TI_cleanup_ptr                              
+1     0000b7fe  __TI_dtors_ptr                                
 1     0000c000  sopwm_sched                                   
 1     00010000  SOPWM_LUT_N11                                 
 1     00010920  SS_streamA_buffer2                            
@@ -797,11 +802,12 @@ page  address   name
 1     00010bdc  SS_streamD_buffer                             
 1     00010c40  SS_currentPlotHashIndices                     
 1     00010c44  SS_streamToggleStates                         
-1     00010c48  _unlock                                       
+1     00010c48  _lock                                         
+1     00010c4a  _unlock                                       
 abs   000003f8  __TI_STACK_SIZE                               
 abs   ffffffff  __TI_pprof_out_hndl                           
 abs   ffffffff  __TI_prof_data_size                           
 abs   ffffffff  __TI_prof_data_start                          
 abs   ffffffff  __c_args__                                    
 
-[148 symbols]
+[150 symbols]

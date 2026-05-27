@@ -40,7 +40,8 @@ dma1.srcAddressVariable   = "0";
 dma1.srcBurstStep         = 1;
 dma1.destBurstStep        = 2;
 dma1.destAddressManual    = 0x406B;
-dma1.destTransferStep     = -4;
+dma1.destTransferStep     = -2;
+dma1.srcTransferStep      = 1;
 
 dma2.$name                = "myDMA1";
 dma2.enableTriggers       = true;
@@ -49,12 +50,13 @@ dma2.transferSize         = 50;
 dma2.continuousModeConfig = "DMA_CFG_CONTINUOUS_ENABLE";
 dma2.srcBurstStep         = 1;
 dma2.dmaBase              = "DMA_CH2_BASE";
-dma2.triggerSource        = "DMA_TRIGGER_EPWM4SOCA";
 dma2.srcWrapSize          = 100;
 dma2.srcAddressVariable   = "0";
 dma2.destBurstStep        = 2;
 dma2.destAddressManual    = 0x436B;
-dma2.destTransferStep     = -4;
+dma2.srcTransferStep      = 1;
+dma2.destTransferStep     = -2;
+dma2.triggerSource        = "DMA_TRIGGER_EPWM1SOCA";
 
 dma3.$name                = "myDMA2";
 dma3.enableTriggers       = true;
@@ -63,12 +65,13 @@ dma3.transferSize         = 50;
 dma3.continuousModeConfig = "DMA_CFG_CONTINUOUS_ENABLE";
 dma3.srcBurstStep         = 1;
 dma3.dmaBase              = "DMA_CH3_BASE";
-dma3.triggerSource        = "DMA_TRIGGER_EPWM7SOCA";
 dma3.srcWrapSize          = 100;
 dma3.srcAddressVariable   = "0";
 dma3.destBurstStep        = 2;
 dma3.destAddressManual    = 0x466B;
-dma3.destTransferStep     = -4;
+dma3.srcTransferStep      = 1;
+dma3.destTransferStep     = -2;
+dma3.triggerSource        = "DMA_TRIGGER_EPWM1SOCA";
 
 epwm1.$name                                                    = "myEPWM1";
 epwm1.epwmTimebase_hsClockDiv                                  = "EPWM_HSCLOCK_DIVIDER_1";
@@ -122,12 +125,12 @@ epwm2.epwmActionQualifier_EPWM_AQ_OUTPUT_B_shadowMode          = true;
 epwm2.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_UP_CMPA = "EPWM_AQ_OUTPUT_TOGGLE";
 epwm2.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_UP_CMPB = "EPWM_AQ_OUTPUT_TOGGLE";
 epwm2.epwmTimebase_phaseEnable                                 = true;
-epwm2.epwmTimebase_phaseShift                                  = 667;
 epwm2.epwmEventTrigger_EPWM_SOC_A_triggerEnable                = true;
 epwm2.epwmEventTrigger_EPWM_SOC_A_triggerSource                = "EPWM_SOC_TBCTR_ZERO";
 epwm2.epwmEventTrigger_interruptEventCount                     = "1";
 epwm2.epwmEventTrigger_interruptSource                         = "EPWM_INT_TBCTR_ZERO";
 epwm2.epwmEventTrigger_EPWM_SOC_A_triggerEventPrescalar        = "1";
+epwm2.epwm.$assign                                             = "EPWM4";
 
 epwm3.$name                                                    = "myEPWM7";
 epwm3.epwmTimebase_hsClockDiv                                  = "EPWM_HSCLOCK_DIVIDER_1";
@@ -152,12 +155,12 @@ epwm3.epwmActionQualifier_EPWM_AQ_OUTPUT_B_shadowMode          = true;
 epwm3.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_UP_CMPA = "EPWM_AQ_OUTPUT_TOGGLE";
 epwm3.epwmActionQualifier_EPWM_AQ_OUTPUT_B_ON_TIMEBASE_UP_CMPB = "EPWM_AQ_OUTPUT_TOGGLE";
 epwm3.epwmTimebase_phaseEnable                                 = true;
-epwm3.epwmTimebase_phaseShift                                  = 1333;
 epwm3.epwmEventTrigger_EPWM_SOC_A_triggerEnable                = true;
 epwm3.epwmEventTrigger_EPWM_SOC_A_triggerSource                = "EPWM_SOC_TBCTR_ZERO";
 epwm3.epwmEventTrigger_interruptSource                         = "EPWM_INT_TBCTR_ZERO";
 epwm3.epwmEventTrigger_interruptEventCount                     = "1";
 epwm3.epwmEventTrigger_EPWM_SOC_A_triggerEventPrescalar        = "1";
+epwm3.epwm.$assign                                             = "EPWM7";
 
 inputxbar1.$name = "myINPUTXBAR5";
 
@@ -168,9 +171,6 @@ inputxbar_input1.inputxbarGpio  = "GPIO56";
 inputxbar_input2.$name          = "myINPUTXBARINPUT1";
 inputxbar_input2.inputxbarInput = "XBAR_INPUT6";
 inputxbar_input2.inputxbarGpio  = "GPIO56";
-
-sync.epwm4SyncInSource = "SYSCTL_SYNC_IN_SRC_EXTSYNCIN1";
-sync.epwm7SyncInSource = "SYSCTL_SYNC_IN_SRC_EXTSYNCIN1";
 
 signalsight1.$name                                            = "myMCUSignalSight0";
 signalsight1.bufferSize                                       = 50;
@@ -204,9 +204,7 @@ signalsight1.hash.hashElements[8].$name                       = "sopwm_angle7";
  * version of the tool will not impact the pinmux you originally saw.  These lines can be completely deleted in order to
  * re-solve from scratch.
  */
-epwm2.epwm.$suggestSolution           = "EPWM3";
-epwm2.epwm.epwm_aPin.$suggestSolution = "GPIO4";
-epwm2.epwm.epwm_bPin.$suggestSolution = "GPIO5";
-epwm3.epwm.$suggestSolution           = "EPWM2";
-epwm3.epwm.epwm_aPin.$suggestSolution = "GPIO2";
-epwm3.epwm.epwm_bPin.$suggestSolution = "GPIO3";
+epwm2.epwm.epwm_aPin.$suggestSolution = "GPIO6";
+epwm2.epwm.epwm_bPin.$suggestSolution = "GPIO7";
+epwm3.epwm.epwm_aPin.$suggestSolution = "GPIO12";
+epwm3.epwm.epwm_bPin.$suggestSolution = "GPIO13";

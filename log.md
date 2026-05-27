@@ -77,3 +77,36 @@ For T_c: Phase C is OFF during both active vectors, so T_c = d_0/2.
 
 ### Changes Made
 - **svm.h**: Corrected `d_1`, `d_2`, and `T_a` formulas in sector 2 of `SVM_EXEC()`.
+
+## 2026-05-26: SOPWM DMA System — Critical Fixes
+
+### 1. ePWM Instance Mismatch (SysConfig)
+**Problem:** SysConfig names "myEPWM4" and "myEPWM7" were mapped to physical EPWM3 (GPIO4/5) and EPWM2 (GPIO2/3). DMA triggers referenced EPWM4SOCA/EPWM7SOCA which never fired because those physical modules were unconfigured.
+
+**Fix:** Changed SysConfig to use actual EPWM4 (GPIO6/7) and EPWM7 (GPIO12/13). DMA dest addresses (0x436B, 0x466B) and triggers now match the real hardware.
+
+### 2. Phase Shift Removed
+**Problem:** Hardware carrier phase shifts (667/1333 counts) displaced the ZERO event between modules. This shifted when DMA writes took effect, misaligning the schedule table with the carrier counter.
+
+**Fix:** Set phase shift = 0 on all three ePWMs. The 120°/240° electrical offset is baked into the SOPWM schedule table via `SOPWM_PHASE_OFFSET_DEG[]` — it shifts *which* slots contain switching events, not the carrier timing.
+
+### 3. DMA Transfer Steps
+**Problem:** SysConfig generated `srcTransferStep=0, destTransferStep=-4` which caused DMA to re-read the same word and write to the wrong register after each burst.
+
+**Fix:** Corrected to `srcTransferStep=1, destTransferStep=-2` (now generated correctly by SysConfig after reconfiguration). Per C2000 TRM: transferStep replaces burstStep after the last word of a burst.
+
+### 4. DMA Trigger Race — All Channels from EPWM1SOCA
+**Problem:** DMA CH2/CH3 triggered by EPWM4SOCA/EPWM7SOCA respectively. The ISR (on EPWM1 INT) called `DMA_configAddresses` at fundamental boundaries, but CH2/CH3 could fire their next burst before the ISR updated them, causing reads from stale buffer pointers (resulting in 0xFFFF values on the 2nd fundamental cycle).
+
+**Fix:** Change all three DMA channels to trigger from **EPWM1SOCA**. This makes DMA and ISR deterministically sequenced — DMA burst completes, then ISR runs, then 20µs gap before next trigger. `DMA_startChannel` calls in ISR removed (not needed with `DMA_CFG_CONTINUOUS_ENABLE` and synchronized triggers).
+
+### 5. SYNC Routing (SysConfig)
+**Problem:** SYNC inputs for EPWM4/EPWM7 were set to `SYSCTL_SYNC_IN_SRC_EXTSYNCIN1` (not connected) instead of EPWM1SYNCOUT.
+
+**Fix:** Not critical since TBCLKSYNC starts all counters from CTR=0 simultaneously with identical periods. Optionally fix to EPWM1SYNCOUT for robustness.
+
+### Pending SysConfig Changes
+- [ ] DMA CH2 trigger: EPWM4SOCA → EPWM1SOCA
+- [ ] DMA CH3 trigger: EPWM7SOCA → EPWM1SOCA
+- [ ] Optionally disable SOC-A on EPWM4/EPWM7
+- [ ] Optionally fix SYNC inputs to EPWM1SYNCOUT

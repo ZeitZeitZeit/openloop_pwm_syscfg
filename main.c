@@ -61,12 +61,16 @@
 // Modulation index command — write from debugger or closed-loop controller
 float sopwm_m_cmd = SOPWM_M_INIT;
 
-// Debug: snapshot of ePWM1 CMPA/CMPB captured each fundamental tick.
-// If DMA is writing correctly these should change away from the SysConfig
-// init value (1000/500). Expected values for m=0.50, N=7: 457, 1256, 1670...
-volatile uint16_t dbg_cmpa_snapshot = 0;
-volatile uint16_t dbg_cmpb_snapshot = 0;
-volatile uint32_t dbg_isr_count     = 0;
+// Debug snapshots — verify DMA is writing the correct schedule values.
+// At m=0.50, N=7, span=7.2 deg/slot, TBPRD=2000:
+//   Phase A: slot 11 fires at 85.21 deg  → cmpa ≈ 1670  (read at cycle_idx==12)
+//   Phase B: slot  0 fires at  6.45 deg  → cmpa ≈ 1791  (read at cycle_idx==1)
+//   Phase C: slot 17 fires at 126.45 deg → cmpa ≈ 1124  (read at cycle_idx==18)
+volatile uint16_t dbg_cmpa_snapshot  = 0;  // PhA slot[11] CMPA
+volatile uint16_t dbg_cmpb_snapshot  = 0;  // PhA slot[11] CMPB
+volatile uint16_t dbg_phB_cmpa_slot0 = 0;  // PhB slot[ 0] CMPA, expect ~1791
+volatile uint16_t dbg_phC_cmpa_slot17= 0;  // PhC slot[17] CMPA, expect ~1124
+volatile uint32_t dbg_isr_count      = 0;
 
 //
 // Function Prototypes
@@ -205,23 +209,29 @@ __interrupt void epwm1ISR(void)
     SOPWM_schedISR();
     dbg_isr_count++;
 
-    // Capture at cycle 12: DMA wrote slot[11] (cmpa=1670,cmpb=0xFFFF) at
-    // cycle 11 ZERO; it latches active at cycle 12 ZERO before ISR reads.
-    if (sopwm_cycle_idx == 12U)
+    // Snapshot CMPA one cycle after each target slot fires (shadow loads at ZERO).
+    if (sopwm_cycle_idx == 12U)  // PhA slot[11]: expect cmpa≈1670
     {
-        dbg_cmpa_snapshot = EPWM_getCounterCompareValue(myEPWM1_BASE, EPWM_COUNTER_COMPARE_A);
-        dbg_cmpb_snapshot = EPWM_getCounterCompareValue(myEPWM1_BASE, EPWM_COUNTER_COMPARE_B);
+        dbg_cmpa_snapshot  = EPWM_getCounterCompareValue(myEPWM1_BASE, EPWM_COUNTER_COMPARE_A);
+        dbg_cmpb_snapshot  = EPWM_getCounterCompareValue(myEPWM1_BASE, EPWM_COUNTER_COMPARE_B);
+    }
+    if (sopwm_cycle_idx == 1U)   // PhB slot[ 0]: expect cmpa≈1791
+    {
+        dbg_phB_cmpa_slot0  = EPWM_getCounterCompareValue(myEPWM4_BASE, EPWM_COUNTER_COMPARE_A);
+    }
+    if (sopwm_cycle_idx == 18U)  // PhC slot[17]: expect cmpa≈1124
+    {
+        dbg_phC_cmpa_slot17 = EPWM_getCounterCompareValue(myEPWM7_BASE, EPWM_COUNTER_COMPARE_A);
     }
 
     // After a fundamental rollover, re-point DMA SRC to the newly activated
     // buffer so the next 50-cycle run reads the freshly built schedule.
     if (sopwm_fund_tick)
     {
-        // Snapshot CMPA/CMPB before re-pointing — if DMA worked these differ
-        // from the SysConfig init values (1000 / 500).
-        dbg_cmpa_snapshot = EPWM_getCounterCompareValue(myEPWM1_BASE, EPWM_COUNTER_COMPARE_A);
-        dbg_cmpb_snapshot = EPWM_getCounterCompareValue(myEPWM1_BASE, EPWM_COUNTER_COMPARE_B);
-
+        // Re-point DMA source to the newly active buffer.
+        // All 3 channels trigger from EPWM1SOCA (same event as this ISR),
+        // so the next trigger won't fire until the next ZERO (20µs away).
+        // DMA_configAddresses updates both srcBeg and srcAddr.
         DMA_configAddresses(myDMA0_BASE,
                             (const void *)(myEPWM1_BASE + EPWM_O_CMPA + 1U),
                             (const void *)&sopwm_sched[0][sopwm_sched_active][0]);

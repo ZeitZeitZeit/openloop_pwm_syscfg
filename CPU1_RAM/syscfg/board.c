@@ -81,7 +81,7 @@ void PinMux_init()
 	GPIO_setQualificationMode(myEPWM1_EPWMB_GPIO, GPIO_QUAL_SYNC);
 
 	//
-	// EPWM3 -> myEPWM4 Pinmux
+	// EPWM4 -> myEPWM4 Pinmux
 	//
 	GPIO_setPinConfig(myEPWM4_EPWMA_PIN_CONFIG);
 	GPIO_setPadConfig(myEPWM4_EPWMA_GPIO, GPIO_PIN_TYPE_STD);
@@ -92,7 +92,7 @@ void PinMux_init()
 	GPIO_setQualificationMode(myEPWM4_EPWMB_GPIO, GPIO_QUAL_SYNC);
 
 	//
-	// EPWM2 -> myEPWM7 Pinmux
+	// EPWM7 -> myEPWM7 Pinmux
 	//
 	GPIO_setPinConfig(myEPWM7_EPWMA_PIN_CONFIG);
 	GPIO_setPadConfig(myEPWM7_EPWMA_GPIO, GPIO_PIN_TYPE_STD);
@@ -132,7 +132,7 @@ void myDMA0_init(){
     DMA_setEmulationMode(DMA_EMULATION_STOP);
     DMA_configAddresses(myDMA0_BASE, (const void *)16491, (const void *)0);
     DMA_configBurst(myDMA0_BASE, 2U, 1, 2);
-    DMA_configTransfer(myDMA0_BASE, 50U, 0, -4);
+    DMA_configTransfer(myDMA0_BASE, 50U, 1, -2);
     DMA_configWrap(myDMA0_BASE, 100U, 0, 65535U, 0);
     DMA_configMode(myDMA0_BASE, DMA_TRIGGER_EPWM1SOCA, DMA_CFG_ONESHOT_DISABLE | DMA_CFG_CONTINUOUS_ENABLE | DMA_CFG_SIZE_16BIT);
     DMA_enableTrigger(myDMA0_BASE);
@@ -142,9 +142,9 @@ void myDMA1_init(){
     DMA_setEmulationMode(DMA_EMULATION_STOP);
     DMA_configAddresses(myDMA1_BASE, (const void *)17259, (const void *)0);
     DMA_configBurst(myDMA1_BASE, 2U, 1, 2);
-    DMA_configTransfer(myDMA1_BASE, 50U, 0, -4);
+    DMA_configTransfer(myDMA1_BASE, 50U, 1, -2);
     DMA_configWrap(myDMA1_BASE, 100U, 0, 65535U, 0);
-    DMA_configMode(myDMA1_BASE, DMA_TRIGGER_EPWM4SOCA, DMA_CFG_ONESHOT_DISABLE | DMA_CFG_CONTINUOUS_ENABLE | DMA_CFG_SIZE_16BIT);
+    DMA_configMode(myDMA1_BASE, DMA_TRIGGER_EPWM1SOCA, DMA_CFG_ONESHOT_DISABLE | DMA_CFG_CONTINUOUS_ENABLE | DMA_CFG_SIZE_16BIT);
     DMA_enableTrigger(myDMA1_BASE);
     DMA_stopChannel(myDMA1_BASE);
 }
@@ -152,9 +152,9 @@ void myDMA2_init(){
     DMA_setEmulationMode(DMA_EMULATION_STOP);
     DMA_configAddresses(myDMA2_BASE, (const void *)18027, (const void *)0);
     DMA_configBurst(myDMA2_BASE, 2U, 1, 2);
-    DMA_configTransfer(myDMA2_BASE, 50U, 0, -4);
+    DMA_configTransfer(myDMA2_BASE, 50U, 1, -2);
     DMA_configWrap(myDMA2_BASE, 100U, 0, 65535U, 0);
-    DMA_configMode(myDMA2_BASE, DMA_TRIGGER_EPWM7SOCA, DMA_CFG_ONESHOT_DISABLE | DMA_CFG_CONTINUOUS_ENABLE | DMA_CFG_SIZE_16BIT);
+    DMA_configMode(myDMA2_BASE, DMA_TRIGGER_EPWM1SOCA, DMA_CFG_ONESHOT_DISABLE | DMA_CFG_CONTINUOUS_ENABLE | DMA_CFG_SIZE_16BIT);
     DMA_enableTrigger(myDMA2_BASE);
     DMA_stopChannel(myDMA2_BASE);
 }
@@ -212,7 +212,7 @@ void EPWM_init(){
     EPWM_setTimeBaseCounter(myEPWM4_BASE, 0);	
     EPWM_setTimeBaseCounterMode(myEPWM4_BASE, EPWM_COUNTER_MODE_UP);	
     EPWM_enablePhaseShiftLoad(myEPWM4_BASE);	
-    EPWM_setPhaseShift(myEPWM4_BASE, 667);	
+    EPWM_setPhaseShift(myEPWM4_BASE, 0);	
     EPWM_setSyncOutPulseMode(myEPWM4_BASE, EPWM_SYNC_OUT_PULSE_ON_COUNTER_ZERO);	
     EPWM_setCounterCompareValue(myEPWM4_BASE, EPWM_COUNTER_COMPARE_A, 1000);	
     EPWM_setCounterCompareShadowLoadMode(myEPWM4_BASE, EPWM_COUNTER_COMPARE_A, EPWM_COMP_LOAD_ON_CNTR_ZERO);	
@@ -254,7 +254,7 @@ void EPWM_init(){
     EPWM_setTimeBaseCounter(myEPWM7_BASE, 0);	
     EPWM_setTimeBaseCounterMode(myEPWM7_BASE, EPWM_COUNTER_MODE_UP);	
     EPWM_enablePhaseShiftLoad(myEPWM7_BASE);	
-    EPWM_setPhaseShift(myEPWM7_BASE, 1333);	
+    EPWM_setPhaseShift(myEPWM7_BASE, 0);	
     EPWM_setSyncOutPulseMode(myEPWM7_BASE, EPWM_SYNC_OUT_PULSE_ON_COUNTER_ZERO);	
     EPWM_setCounterCompareValue(myEPWM7_BASE, EPWM_COUNTER_COMPARE_A, 1000);	
     EPWM_setCounterCompareShadowLoadMode(myEPWM7_BASE, EPWM_COUNTER_COMPARE_A, EPWM_COMP_LOAD_ON_CNTR_ZERO);	
@@ -361,8 +361,8 @@ void SYNC_init(){
 	//
 	// For EPWM1, the sync input is: SYSCTL_SYNC_IN_SRC_EXTSYNCIN1
 	//
-	SysCtl_setSyncInputConfig(SYSCTL_SYNC_IN_EPWM4, SYSCTL_SYNC_IN_SRC_EXTSYNCIN1);
-	SysCtl_setSyncInputConfig(SYSCTL_SYNC_IN_EPWM7, SYSCTL_SYNC_IN_SRC_EXTSYNCIN1);
+	SysCtl_setSyncInputConfig(SYSCTL_SYNC_IN_EPWM4, SYSCTL_SYNC_IN_SRC_EPWM1SYNCOUT);
+	SysCtl_setSyncInputConfig(SYSCTL_SYNC_IN_EPWM7, SYSCTL_SYNC_IN_SRC_EPWM1SYNCOUT);
 	SysCtl_setSyncInputConfig(SYSCTL_SYNC_IN_ECAP1, SYSCTL_SYNC_IN_SRC_EPWM1SYNCOUT);
 	SysCtl_setSyncInputConfig(SYSCTL_SYNC_IN_ECAP4, SYSCTL_SYNC_IN_SRC_EPWM1SYNCOUT);
 	SysCtl_setSyncInputConfig(SYSCTL_SYNC_IN_ECAP6, SYSCTL_SYNC_IN_SRC_EPWM1SYNCOUT);
