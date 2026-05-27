@@ -51,12 +51,15 @@
 // SOPWM schedule parameters
 //   SOPWM_TBPRD : must match TBPRD configured in SysConfig for ePWM1/4/7
 //                 100 MHz / 50 kHz = 2000 counts
-//   SOPWM_N     : pulse number — 7, 9, 11, 13 or 15
+//   sopwm_N_cmd : pulse number — 7, 11, or 15 (writable from debugger)
 //   SOPWM_M_INIT: starting modulation index (main loop updates each fundamental)
 // ---------------------------------------------------------------------------
 #define SOPWM_TBPRD    2000U
-#define SOPWM_N        7U
+#define SOPWM_N_INIT   7U
 #define SOPWM_M_INIT   0.50f
+
+// Runtime pulse number — write 7, 11, or 15 from CCS debugger to change live
+volatile uint16_t sopwm_N_cmd = SOPWM_N_INIT;
 
 // Modulation index command — write from debugger or closed-loop controller
 float sopwm_m_cmd = SOPWM_M_INIT;
@@ -127,7 +130,7 @@ void main(void)
     // Pre-build BOTH double-buffers BEFORE starting DMA so data is valid
     // from the very first SOC-A trigger.
     //
-    SOPWM_InitSchedule(SOPWM_M_INIT, SOPWM_N, SOPWM_TBPRD);
+    SOPWM_InitSchedule(SOPWM_M_INIT, sopwm_N_cmd, SOPWM_TBPRD);
 
     // Set DMA source addresses to the populated schedule table.
     DMA_configAddresses(myDMA0_BASE,
@@ -176,7 +179,7 @@ void main(void)
             // --- Update m here from closed-loop controller if needed ---
             // sopwm_m_cmd = compute_m(Ualpha, Ubeta, Udc);
 
-            SOPWM_BuildSchedule(sopwm_m_cmd, SOPWM_N, SOPWM_TBPRD);
+            SOPWM_BuildSchedule(sopwm_m_cmd, sopwm_N_cmd, SOPWM_TBPRD);
             SOPWM_CommitSchedule();
 
             SIGNALSIGHT_capturePlotData();
