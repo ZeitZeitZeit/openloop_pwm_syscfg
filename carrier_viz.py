@@ -5,7 +5,7 @@ carrier_viz.py
 Visualise the relationship between:
   - 1 kHz fundamental period  (one full SOPWM output cycle)
   - 50 kHz sawtooth carrier   (50 carrier cycles per fundamental)
-  - 28 SOPWM switching events derived from 7 LUT angles (N=15, m=0.90)
+  - 12 SOPWM switching events derived from 3 LUT angles (N=7, m=0.50)
 """
 
 import numpy as np
@@ -29,11 +29,11 @@ t        = np.linspace(0, T_FUND, N_PTS, endpoint=False)
 carrier_phase = (t % T_CARR) / T_CARR
 carrier       = carrier_phase                        # sawtooth 0→1
 
-# ── 7 base angles from SOPWM_LUT_N15, m=0.90 (degrees → radians) ──────────────
+# ── 3 base angles from SOPWM_LUT_N7, m=0.50 (degrees → radians) ──────────────
 BASE_DEG = np.array([
-    10.6594482918, 13.2297068841, 63.2034301892, 68.8227447554, 75.9644165685, 81.8495542706, 87.1113475703
+    66.4466338389, 76.5217501494, 85.2117684069
 ])
-base_rad = np.deg2rad(BASE_DEG)          # α1…α7  ∈ (0, π/2)
+base_rad = np.deg2rad(BASE_DEG)          # α1, α2, α3  ∈ (0, π/2)
 
 # ── Quarter-wave expansion → 12 switching angles in [0, 2π] ──────────────────
 rev = base_rad[::-1]
@@ -43,7 +43,7 @@ all_angles_rad = np.concatenate([
     PI   + base_rad,     # Q3: π+α1, π+α2, π+α3
     2*PI - rev,          # Q4: 2π−α3, 2π−α2, 2π−α1
 ])
-Q_IDX = [i // 7 for i in range(28)]                  # quarter index 0-3
+Q_IDX = [i // 3 for i in range(12)]                  # quarter index 0-3
 
 # ── Convert each switching angle to a time instant ───────────────────────────
 t_switch = all_angles_rad / (2 * PI) * T_FUND         # seconds
@@ -77,10 +77,10 @@ fig, (ax_carr, ax_pwm) = plt.subplots(
     gridspec_kw={'height_ratios': [2, 1]}
 )
 fig.suptitle(
-    f'SOPWM  N=15, m=0.90  |  7 base angles: '
+    f'SOPWM  N=7, m=0.50  |  3 base angles: '
     f'{', '.join(f"{a:.3f}°" for a in BASE_DEG)}\n'
     f'Fundamental {F_FUND} Hz  ·  Sawtooth carrier {F_CARR} Hz  ·  '
-    f'28 switching events (quarter-wave + half-wave)',
+    f'12 switching events (quarter-wave + half-wave)',
     fontsize=11, fontweight='bold'
 )
 
@@ -131,7 +131,7 @@ ax_carr.set_ylabel('Carrier amplitude', fontsize=10)
 ax_carr.set_ylim(-0.28, 1.22)
 ax_carr.set_yticks([0, 0.5, 1.0])
 ax_carr.set_title(
-    'Sawtooth carrier (50 kHz) with 28 switching-event dots  '
+    'Sawtooth carrier (50 kHz) with 12 switching-event dots  '
     '(colored by quarter,  purple dashed = quarter boundaries)',
     fontsize=10
 )

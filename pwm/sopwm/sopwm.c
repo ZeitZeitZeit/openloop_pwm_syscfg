@@ -681,7 +681,8 @@ static void sopwm_build_phase(
         uint16_t          total,
         uint16_t          tbprd,
         uint16_t          buf_idx,
-        uint16_t          ph)
+        uint16_t          ph,
+        float             phase_offset_deg)
 {
     SOPWM_CycleCmp_t *tbl = sopwm_sched[ph][buf_idx];
     uint16_t          i, slot, counts;
@@ -718,6 +719,22 @@ static void sopwm_build_phase(
         }
         /* >2 events in one slot: silently dropped.
          * This only occurs at m >= 0.97 boundary cycles — see check script. */
+    }
+
+    /* Enforce half-wave symmetry: force a toggle at the phase-specific midpoint.
+     * Phase A: 0° + 180° = 180° → slot 25
+     * Phase B: 120° + 180° = 300° → slot 41
+     * Phase C: 240° + 180° = 60°  → slot 8
+     * Toggle at the middle of the sawtooth (tbprd/2) within that slot. */
+    float mid_deg = phase_offset_deg + 180.0f;
+    if (mid_deg >= 360.0f) mid_deg -= 360.0f;
+    uint16_t mid_slot = (uint16_t)(mid_deg / SOPWM_CYCLE_SPAN_DEG);
+    if (mid_slot >= SOPWM_N_CARR) mid_slot = SOPWM_N_CARR - 1U;
+    uint16_t mid_counts = (tbprd + 1U) / 2U;  /* ≈ 1000 for tbprd=2000 */
+    if (tbl[mid_slot].cmpa == SOPWM_CMP_OFF) {
+        tbl[mid_slot].cmpa = mid_counts;
+    } else if (tbl[mid_slot].cmpb == SOPWM_CMP_OFF) {
+        tbl[mid_slot].cmpb = mid_counts;
     }
 }
 
@@ -772,7 +789,7 @@ void SOPWM_BuildSchedule(float m, uint16_t N, uint16_t tbprd)
         offset = SOPWM_PHASE_OFFSET_DEG[ph];
         if (offset == 0.0f) {
             sopwm_build_phase(all_angles, total, tbprd,
-                              sopwm_sched_next, ph);
+                              sopwm_sched_next, ph, offset);
         } else {
             /* Shift all angles and wrap to [0, 360°) */
             for (i = 0U; i < total; i++) {
@@ -781,7 +798,7 @@ void SOPWM_BuildSchedule(float m, uint16_t N, uint16_t tbprd)
                 shifted[i] = wrapped;
             }
             sopwm_build_phase(shifted, total, tbprd,
-                              sopwm_sched_next, ph);
+                              sopwm_sched_next, ph, offset);
         }
     }
 }

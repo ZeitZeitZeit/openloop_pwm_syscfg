@@ -105,6 +105,17 @@ For T_c: Phase C is OFF during both active vectors, so T_c = d_0/2.
 
 **Fix:** Not critical since TBCLKSYNC starts all counters from CTR=0 simultaneously with identical periods. Optionally fix to EPWM1SYNCOUT for robustness.
 
+### 6. Half-Wave Symmetry Constraint Missing
+**Problem:** SOPWM output was missing the forced toggle at the 180° midpoint. Without this, the waveform lacks true half-wave symmetry (f(t) = -f(t - T/2)), resulting in only 6 pulses instead of proper balanced modulation.
+
+**Fix:** Added forced toggle at midpoint slot (slot 25 for 50-slot schedule) at tbprd/2 (≈1000 counts for tbprd=2000). This forces the output LOW at exactly 180°, ensuring:
+- First half (0°-180°): LUT-defined switching
+- Second half (180°-360°): Exact inverse (automatic via half-wave symmetry)
+- Proper balanced 3-phase modulation across all phases
+
+**Changes Made:**
+- **sopwm.c** `sopwm_build_phase()`: Added forced CMPA toggle at midpoint after LUT angle binning.
+
 ### Pending SysConfig Changes
 - [ ] DMA CH2 trigger: EPWM4SOCA → EPWM1SOCA
 - [ ] DMA CH3 trigger: EPWM7SOCA → EPWM1SOCA
