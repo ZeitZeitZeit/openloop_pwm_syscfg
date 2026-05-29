@@ -124,6 +124,22 @@ extern "C"
 
 //*****************************************************************************
 //
+// ASYSCTL Configurations
+//
+//*****************************************************************************
+
+//*****************************************************************************
+//
+// DAC Configurations
+//
+//*****************************************************************************
+#define myDAC0_BASE DACA_BASE
+void myDAC0_init();
+#define myDAC1_BASE DACB_BASE
+void myDAC1_init();
+
+//*****************************************************************************
+//
 // EPWM Configurations
 //
 //*****************************************************************************
@@ -143,7 +159,7 @@ extern "C"
 #define myEPWM2_BASE EPWM2_BASE
 #define myEPWM2_TBPRD 5000
 #define myEPWM2_COUNTER_MODE EPWM_COUNTER_MODE_UP_DOWN
-#define myEPWM2_TBPHS 3334
+#define myEPWM2_TBPHS 0
 #define myEPWM2_CMPA 1000
 #define myEPWM2_CMPB 500
 #define myEPWM2_CMPC 0
@@ -156,7 +172,7 @@ extern "C"
 #define myEPWM3_BASE EPWM3_BASE
 #define myEPWM3_TBPRD 5000
 #define myEPWM3_COUNTER_MODE EPWM_COUNTER_MODE_UP_DOWN
-#define myEPWM3_TBPHS 6667
+#define myEPWM3_TBPHS 0
 #define myEPWM3_CMPA 1000
 #define myEPWM3_CMPB 500
 #define myEPWM3_CMPC 0
@@ -223,6 +239,8 @@ void myMCUSignalSight0_transferLayer_SCI_init();
 //
 //*****************************************************************************
 void	Board_init();
+void	ASYSCTL_init();
+void	DAC_init();
 void	EPWM_init();
 void	INPUTXBAR_init();
 void	INTERRUPT_init();

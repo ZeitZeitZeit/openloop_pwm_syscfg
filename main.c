@@ -94,6 +94,17 @@ void main(void)
     Board_init();
 
     //
+    // The DAC output buffer was enabled in SysConfig, but the internal analog
+    // reference (VREFHI) must be explicitly connected via ASysCtl on F280049C.
+    // Without this, the DAC output rail stays at 0 V regardless of shadow value.
+    // DACA uses VREFHIA, DACB uses VREFHIB.
+    //
+    EALLOW;
+    ASysCtl_setAnalogReferenceInternal(ASYSCTL_VREFHIA | ASYSCTL_VREFHIB);
+    EDIS;
+    DEVICE_DELAY_US(5000);   // allow internal reference to settle
+
+    //
     // Initialize Signal Sight tool state
     //
     SIGNALSIGHT_init();
@@ -174,6 +185,14 @@ __interrupt void epwm1ISR(void)
                                 (uint16_t)(dutyB * myEPWM2_TBPRD));
     EPWM_setCounterCompareValue(myEPWM3_BASE, EPWM_COUNTER_COMPARE_A,
                                 (uint16_t)(dutyC * myEPWM3_TBPRD));
+
+    //
+    // Output Ta and Tb on DACA/DACB for oscilloscope viewing.
+    // DAC is 12-bit (0–4095). Duty cycle [0.0, 1.0] → [0, 4095].
+    // DACA = Ta, DACB = Tb. Tc = 1 - Ta - Tb (view mathematically).
+    //
+    DAC_setShadowValue(myDAC0_BASE, (uint16_t)(dutyA * 4095.0f));
+    DAC_setShadowValue(myDAC1_BASE, (uint16_t)(dutyB * 4095.0f));
 
     //
     // Clear INT flag for this timer

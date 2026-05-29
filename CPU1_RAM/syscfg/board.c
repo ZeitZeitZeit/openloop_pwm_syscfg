@@ -50,6 +50,8 @@ void Board_init()
 	PinMux_init();
 	INPUTXBAR_init();
 	SYNC_init();
+	ASYSCTL_init();
+	DAC_init();
 	EPWM_init();
 	SCI_init();
 	INTERRUPT_init();
@@ -117,6 +119,89 @@ void PinMux_init()
 
 //*****************************************************************************
 //
+// ASYSCTL Configurations
+//
+//*****************************************************************************
+void ASYSCTL_init(){
+	//
+	// asysctl initialization
+	//
+	// Disables the temperature sensor output to the ADC.
+	//
+	ASysCtl_disableTemperatureSensor();
+	//
+	// Set the analog voltage reference selection to external.
+	//
+	ASysCtl_setAnalogReferenceExternal( ASYSCTL_VREFHIA | ASYSCTL_VREFHIB | ASYSCTL_VREFHIC );
+}
+
+//*****************************************************************************
+//
+// DAC Configurations
+//
+//*****************************************************************************
+void DAC_init(){
+	myDAC0_init();
+	myDAC1_init();
+}
+
+void myDAC0_init(){
+	//
+	// Set DAC reference voltage.
+	//
+	DAC_setReferenceVoltage(myDAC0_BASE, DAC_REF_ADC_VREFHI);
+	//
+	// Set DAC gain mode.
+	//
+	DAC_setGainMode(myDAC0_BASE, DAC_GAIN_ONE);
+	//
+	// Set DAC load mode.
+	//
+	DAC_setLoadMode(myDAC0_BASE, DAC_LOAD_SYSCLK);
+	//
+	// Enable the DAC output
+	//
+	DAC_enableOutput(myDAC0_BASE);
+	//
+	// Set the DAC shadow output
+	//
+	DAC_setShadowValue(myDAC0_BASE, 0U);
+
+	//
+	// Delay for buffered DAC to power up.
+	//
+	DEVICE_DELAY_US(500);
+}
+void myDAC1_init(){
+	//
+	// Set DAC reference voltage.
+	//
+	DAC_setReferenceVoltage(myDAC1_BASE, DAC_REF_ADC_VREFHI);
+	//
+	// Set DAC gain mode.
+	//
+	DAC_setGainMode(myDAC1_BASE, DAC_GAIN_ONE);
+	//
+	// Set DAC load mode.
+	//
+	DAC_setLoadMode(myDAC1_BASE, DAC_LOAD_SYSCLK);
+	//
+	// Enable the DAC output
+	//
+	DAC_enableOutput(myDAC1_BASE);
+	//
+	// Set the DAC shadow output
+	//
+	DAC_setShadowValue(myDAC1_BASE, 0U);
+
+	//
+	// Delay for buffered DAC to power up.
+	//
+	DEVICE_DELAY_US(500);
+}
+
+//*****************************************************************************
+//
 // EPWM Configurations
 //
 //*****************************************************************************
@@ -170,8 +255,9 @@ void EPWM_init(){
     EPWM_setTimeBasePeriod(myEPWM2_BASE, 5000);	
     EPWM_setTimeBaseCounter(myEPWM2_BASE, 0);	
     EPWM_setTimeBaseCounterMode(myEPWM2_BASE, EPWM_COUNTER_MODE_UP_DOWN);	
+    EPWM_setCountModeAfterSync(myEPWM2_BASE, EPWM_COUNT_MODE_UP_AFTER_SYNC);	
     EPWM_enablePhaseShiftLoad(myEPWM2_BASE);	
-    EPWM_setPhaseShift(myEPWM2_BASE, 3334);	
+    EPWM_setPhaseShift(myEPWM2_BASE, 0);	
     EPWM_setSyncOutPulseMode(myEPWM2_BASE, EPWM_SYNC_OUT_PULSE_ON_EPWMxSYNCIN);	
     EPWM_setCounterCompareValue(myEPWM2_BASE, EPWM_COUNTER_COMPARE_A, 1000);	
     EPWM_setCounterCompareShadowLoadMode(myEPWM2_BASE, EPWM_COUNTER_COMPARE_A, EPWM_COMP_LOAD_ON_CNTR_ZERO);	
@@ -212,8 +298,9 @@ void EPWM_init(){
     EPWM_setTimeBasePeriod(myEPWM3_BASE, 5000);	
     EPWM_setTimeBaseCounter(myEPWM3_BASE, 0);	
     EPWM_setTimeBaseCounterMode(myEPWM3_BASE, EPWM_COUNTER_MODE_UP_DOWN);	
+    EPWM_setCountModeAfterSync(myEPWM3_BASE, EPWM_COUNT_MODE_UP_AFTER_SYNC);	
     EPWM_enablePhaseShiftLoad(myEPWM3_BASE);	
-    EPWM_setPhaseShift(myEPWM3_BASE, 6667);	
+    EPWM_setPhaseShift(myEPWM3_BASE, 0);	
     EPWM_setCounterCompareValue(myEPWM3_BASE, EPWM_COUNTER_COMPARE_A, 1000);	
     EPWM_setCounterCompareShadowLoadMode(myEPWM3_BASE, EPWM_COUNTER_COMPARE_A, EPWM_COMP_LOAD_ON_CNTR_ZERO);	
     EPWM_setCounterCompareValue(myEPWM3_BASE, EPWM_COUNTER_COMPARE_B, 500);	
