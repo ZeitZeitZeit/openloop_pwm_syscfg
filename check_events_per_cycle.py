@@ -3,7 +3,7 @@
 check_events_per_cycle.py
 =========================
 Reads all SOPWM LUT angles from sopwm.c, expands every row to the full
-4·N switching angles using quarter-wave symmetry, then checks how many
+4·M switching angles using quarter-wave symmetry, then checks how many
 switching events fall in each sawtooth carrier cycle.
 
 Rule: no single carrier cycle should contain more than 2 events.
@@ -31,7 +31,7 @@ N_CARR    = F_CARR // F_FUND          # 50 cycles per fundamental period
 CYCLE_SPAN = 2 * PI / N_CARR          # radians covered by one carrier cycle
 MAX_EVENTS = 2                        # tolerance limit
 
-# LUT names → number of base angles per row
+# LUT names → M (number of base angles per quarter-wave)
 LUT_INFO = {
     "SOPWM_LUT_N7":  3,
     "SOPWM_LUT_N9":  4,
@@ -45,7 +45,7 @@ LUT_INFO = {
 
 def parse_luts(path: Path) -> dict:
     """
-    Return dict: lut_name → np.ndarray shape (M, n_angles) in degrees.
+    Return dict: lut_name → np.ndarray shape (100, M) in degrees.
     Skips rows that are all-zero (placeholder entries).
     """
     text = path.read_text(encoding="utf-8")
@@ -81,8 +81,8 @@ def parse_luts(path: Path) -> dict:
 
 def expand(base_deg: np.ndarray) -> np.ndarray:
     """
-    base_deg: 1-D array of N angles in degrees, all in (0, 90).
-    Returns 4·N switching angles in radians covering [0, 2π].
+    base_deg: 1-D array of M angles in degrees, all in (0, 90).
+    Returns 4·M switching angles in radians covering [0, 2π].
     """
     base = np.deg2rad(base_deg)
     rev  = base[::-1]
@@ -127,7 +127,7 @@ def main():
     total_violate = 0
 
     for lut_name, data in luts.items():
-        n_base    = LUT_INFO[lut_name]
+        M         = LUT_INFO[lut_name]
         n_rows    = len(data)
         violations = []
 
@@ -144,7 +144,7 @@ def main():
         total_rows    += n_rows
         total_violate += len(violations)
         status = "✓  PASS" if not violations else f"✗  {len(violations)} VIOLATIONS"
-        print(f"\n  {lut_name}  (N_base={n_base}, {n_rows} m-values)  →  {status}")
+        print(f"\n  {lut_name}  (M={M}, {n_rows} m-values)  →  {status}")
 
         if violations:
             print(f"  {'m':>6}  {'max_events':>10}  {'cycles_over_limit'}")
@@ -179,7 +179,7 @@ def main():
     print(f"{'─'*70}")
 
     data15   = luts["SOPWM_LUT_N15"]
-    n_base   = LUT_INFO["SOPWM_LUT_N15"]
+    M        = LUT_INFO["SOPWM_LUT_N15"]
 
     # Build per-m counts matrix  shape (100, N_CARR)
     counts_matrix = np.zeros((len(data15), N_CARR), dtype=int)

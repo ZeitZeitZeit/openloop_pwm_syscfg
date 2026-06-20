@@ -3,16 +3,16 @@
 sopwm_demo.py — SOPWM quarter-wave + half-wave symmetry visualiser
 ====================================================================
 User provides:
-  • Number of base angles N  (3, 5, or 7)
-  • N angles in radians, all < π/2, entered one per line
+  • Number of base angles M  (3, 5, or 7)
+  • M angles in radians, all < π/2, entered one per line
 
-From the N base angles the full set of 4·N switching angles is built by
+From the M base angles the full set of 4·M switching angles is built by
 applying quarter-wave symmetry:
 
-  Q1  α₁ … αN              ∈ [0,   π/2]
-  Q2  π−αN … π−α₁          ∈ [π/2, π  ]
-  Q3  π+α₁ … π+αN          ∈ [π,   3π/2]
-  Q4  2π−αN … 2π−α₁        ∈ [3π/2, 2π]
+  Q1  α₁ … αM              ∈ [0,   π/2]
+  Q2  π−αM … π−α₁          ∈ [π/2, π  ]
+  Q3  π+α₁ … π+αM          ∈ [π,   3π/2]
+  Q4  2π−αM … 2π−α₁        ∈ [3π/2, 2π]
 
 AND half-wave symmetry:
   • The PWM starts LOW.
@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 PI = np.pi
-VALID_N  = {3, 5, 7}
+VALID_M  = {3, 5, 7}
 COLORS   = ['#E63946', '#2A9D8F', '#457B9D', '#E9C46A']
 Q_NAMES  = ['Q1  [0, π/2]', 'Q2  [π/2, π]', 'Q3  [π, 3π/2]', 'Q4  [3π/2, 2π]']
 Q_SPANS  = [(0.0, 2.5), (2.5, 5.0), (5.0, 7.5), (7.5, 10.0)]
@@ -40,23 +40,23 @@ N_POINTS = 100_000
 # Input helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-def ask_n() -> int:
+def ask_m() -> int:
     """Ask the user for the number of base angles (3, 5, or 7)."""
     while True:
-        raw = input(f"Number of base angles {sorted(VALID_N)}: ").strip()
-        if raw.isdigit() and int(raw) in VALID_N:
+        raw = input(f"Number of base angles {sorted(VALID_M)}: ").strip()
+        if raw.isdigit() and int(raw) in VALID_M:
             return int(raw)
-        print(f"  ✗  Please enter one of {sorted(VALID_N)}.")
+        print(f"  ✗  Please enter one of {sorted(VALID_M)}.")
 
 
-def ask_angles(n: int) -> np.ndarray:
+def ask_angles(M: int) -> np.ndarray:
     """
-    Ask for n angles in radians, enforce 0 < αᵢ < π/2 and strict increase.
+    Ask for M angles in radians, enforce 0 < αᵢ < π/2 and strict increase.
     Returns a sorted numpy array.
     """
-    print(f"Enter {n} angles in radians (each on its own line, 0 < α < π/2 ≈ {PI/2:.4f}):")
+    print(f"Enter {M} angles in radians (each on its own line, 0 < α < π/2 ≈ {PI/2:.4f}):")
     angles = []
-    while len(angles) < n:
+    while len(angles) < M:
         k = len(angles) + 1
         raw = input(f"  α{k}: ").strip()
         try:
@@ -80,15 +80,15 @@ def ask_angles(n: int) -> np.ndarray:
 
 def quarter_wave_expand(base: np.ndarray) -> np.ndarray:
     """
-    Given N sorted base angles in (0, π/2), return the full 4·N switching
+    Given M sorted base angles in (0, π/2), return the full 4·M switching
     angles in [0, 2π] produced by quarter-wave symmetry.
     A half-wave toggle at π is handled separately in generate_pwm().
     """
     rev  = base[::-1]
-    q1   = base          # α₁ … αN
-    q2   = PI   - rev    # π−αN … π−α₁
-    q3   = PI   + base   # π+α₁ … π+αN
-    q4   = 2*PI - rev    # 2π−αN … 2π−α₁
+    q1   = base          # α₁ … αM
+    q2   = PI   - rev    # π−αM … π−α₁
+    q3   = PI   + base   # π+α₁ … π+αM
+    q4   = 2*PI - rev    # 2π−αM … 2π−α₁
     return np.concatenate([q1, q2, q3, q4])
 
 
@@ -127,17 +127,17 @@ def generate_pwm(thresholds: np.ndarray, saw: np.ndarray) -> np.ndarray:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def print_summary(base: np.ndarray, all_angles: np.ndarray) -> None:
-    n = len(base)
+    M = len(base)
     print("\n" + "─" * 62)
-    print(f"  Base angles  (N = {n})")
+    print(f"  Base angles  (M = {M})")
     for i, a in enumerate(base):
         print(f"    α{i+1:1d} = {a:.6f} rad  ({np.degrees(a):.4f}°)")
 
-    print(f"\n  {4*n} switching angles (quarter-wave) + 1 half-wave toggle at π")
+    print(f"\n  {4*M} switching angles (quarter-wave) + 1 half-wave toggle at π")
     print(f"  {'Label':6}  {'rad':>10}  {'degrees':>10}   Quarter")
     print("  " + "─" * 46)
     for i, ang in enumerate(all_angles):
-        qi   = i // n + 1
+        qi   = i // M + 1
         xc   = ang * X_TOTAL / (2 * PI)
         lbl  = f'α{i+1}'
         print(f"  {lbl:6}  {ang:10.6f}  {np.degrees(ang):10.4f}°   Q{qi}  (x={xc:.3f})")
@@ -151,8 +151,9 @@ def print_summary(base: np.ndarray, all_angles: np.ndarray) -> None:
 def plot(base: np.ndarray, all_angles: np.ndarray, x: np.ndarray,
          saw: np.ndarray, pwm: np.ndarray) -> None:
 
-    n          = len(base)
-    total      = 4 * n
+    M          = len(base)
+    N          = 2 * M + 1
+    total      = 4 * M
     base_str   = ',  '.join(f'α{i+1}={np.degrees(a):.2f}°' for i, a in enumerate(base))
 
     fig, (ax1, ax2) = plt.subplots(
@@ -160,7 +161,7 @@ def plot(base: np.ndarray, all_angles: np.ndarray, x: np.ndarray,
         gridspec_kw={'height_ratios': [2, 1]}
     )
     fig.suptitle(
-        f'SOPWM  (N = {2*n+1} pulses | quarter-wave + half-wave symmetry)  '
+        f'SOPWM  (N = {N} pulses, M = {M} | quarter-wave + half-wave symmetry)  '
         f'─  {base_str}',
         fontsize=11, fontweight='bold'
     )
@@ -173,9 +174,9 @@ def plot(base: np.ndarray, all_angles: np.ndarray, x: np.ndarray,
         ax1.text((x0 + x1) / 2, 2*PI + 0.38, qname,
                  ha='center', fontsize=9, color=col, fontweight='bold')
 
-        for j in range(n):
-            ang = all_angles[qi * n + j]
-            lbl = f'α{qi*n + j + 1}'
+        for j in range(M):
+            ang = all_angles[qi * M + j]
+            lbl = f'α{qi*M + j + 1}'
             xc  = ang * X_TOTAL / (2 * PI)
 
             # Horizontal dashed threshold line
@@ -218,8 +219,8 @@ def plot(base: np.ndarray, all_angles: np.ndarray, x: np.ndarray,
     for qi, ((x0, x1), col) in enumerate(zip(Q_SPANS, COLORS)):
         ax2.axvspan(x0, x1, alpha=0.10, color=col)
         ax2.axvline(x0, color='gray', lw=0.8, ls='--', alpha=0.35)
-        for j in range(n):
-            ang = all_angles[qi * n + j]
+        for j in range(M):
+            ang = all_angles[qi * M + j]
             ax2.axvline(ang * X_TOTAL / (2 * PI), color=col, lw=0.9, ls=':', alpha=0.75)
 
     # Half-wave boundary marker
@@ -251,8 +252,8 @@ def main() -> None:
     print("  SOPWM Demo — quarter-wave + half-wave symmetry")
     print("─" * 62)
 
-    n          = ask_n()
-    base       = ask_angles(n)
+    M          = ask_m()
+    base       = ask_angles(M)
     all_angles = quarter_wave_expand(base)
 
     x, saw = make_sawtooth()
