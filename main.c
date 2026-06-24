@@ -51,7 +51,7 @@
 // SOPWM schedule parameters
 //   SOPWM_TBPRD : must match TBPRD configured in SysConfig for ePWM1/4/7
 //                 100 MHz / 50 kHz = 2000 counts
-//   sopwm_N_cmd : pulse number — 7, 11, or 15 (writable from debugger)
+//   sopwm_N_cmd : pulse number — 7, 9, 11, 13, or 15 (writable from debugger)
 //   SOPWM_M_INIT: starting modulation index (main loop updates each fundamental)
 // ---------------------------------------------------------------------------
 #define SOPWM_TBPRD    2000U
