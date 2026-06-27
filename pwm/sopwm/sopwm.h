@@ -133,7 +133,7 @@ typedef struct {
 
 /*
  * Double-buffered schedule tables — [phase][buffer][cycle]
- *   phase  : 0=A (ePWM1), 1=B (ePWM4), 2=C (ePWM7)
+ *   phase  : 0=A (ePWM1), 1=B (ePWM4), 2=C (ePWM2)
  *   buffer : 0 or 1 (double-buffer)
  *   cycle  : 0..SOPWM_N_CARR-1
  *

@@ -91,20 +91,20 @@ extern "C"
 #define myEPWM4_EPWMB_PIN_CONFIG GPIO_7_EPWM4_B
 
 //
-// EPWM7 -> myEPWM7 Pinmux
+// EPWM2 -> myEPWM2 Pinmux
 //
 //
-// EPWM7_A - GPIO Settings
+// EPWM2_A - GPIO Settings
 //
-#define GPIO_PIN_EPWM7_A 12
-#define myEPWM7_EPWMA_GPIO 12
-#define myEPWM7_EPWMA_PIN_CONFIG GPIO_12_EPWM7_A
+#define GPIO_PIN_EPWM2_A 2
+#define myEPWM2_EPWMA_GPIO 2
+#define myEPWM2_EPWMA_PIN_CONFIG GPIO_2_EPWM2_A
 //
-// EPWM7_B - GPIO Settings
+// EPWM2_B - GPIO Settings
 //
-#define GPIO_PIN_EPWM7_B 13
-#define myEPWM7_EPWMB_GPIO 13
-#define myEPWM7_EPWMB_PIN_CONFIG GPIO_13_EPWM7_B
+#define GPIO_PIN_EPWM2_B 3
+#define myEPWM2_EPWMB_GPIO 3
+#define myEPWM2_EPWMB_PIN_CONFIG GPIO_3_EPWM2_B
 
 //
 // SCIA -> myMCUSignalSight0_transferLayer_SCI Pinmux
@@ -144,7 +144,7 @@ void myDMA0_init();
 #define myDMA1_DEST_WRAPSIZE 65535U
 void myDMA1_init();
 #define myDMA2_SRCADDRESS 0 
-#define myDMA2_DESTADDRESS 18027 
+#define myDMA2_DESTADDRESS 16747 
 #define myDMA2_BASE DMA_CH3_BASE 
 #define myDMA2_BURSTSIZE 2U
 #define myDMA2_TRANSFERSIZE 50U
@@ -183,19 +183,19 @@ void myDMA2_init();
 #define myEPWM4_TZA_ACTION EPWM_TZ_ACTION_HIGH_Z
 #define myEPWM4_TZB_ACTION EPWM_TZ_ACTION_HIGH_Z
 #define myEPWM4_INTERRUPT_SOURCE EPWM_INT_TBCTR_ZERO
-#define myEPWM7_BASE EPWM7_BASE
-#define myEPWM7_TBPRD 1999
-#define myEPWM7_COUNTER_MODE EPWM_COUNTER_MODE_UP
-#define myEPWM7_TBPHS 0
-#define myEPWM7_CMPA 1000
-#define myEPWM7_CMPB 500
-#define myEPWM7_CMPC 0
-#define myEPWM7_CMPD 0
-#define myEPWM7_DBRED 240
-#define myEPWM7_DBFED 240
-#define myEPWM7_TZA_ACTION EPWM_TZ_ACTION_HIGH_Z
-#define myEPWM7_TZB_ACTION EPWM_TZ_ACTION_HIGH_Z
-#define myEPWM7_INTERRUPT_SOURCE EPWM_INT_TBCTR_ZERO
+#define myEPWM2_BASE EPWM2_BASE
+#define myEPWM2_TBPRD 1999
+#define myEPWM2_COUNTER_MODE EPWM_COUNTER_MODE_UP
+#define myEPWM2_TBPHS 0
+#define myEPWM2_CMPA 1000
+#define myEPWM2_CMPB 500
+#define myEPWM2_CMPC 0
+#define myEPWM2_CMPD 0
+#define myEPWM2_DBRED 240
+#define myEPWM2_DBFED 240
+#define myEPWM2_TZA_ACTION EPWM_TZ_ACTION_HIGH_Z
+#define myEPWM2_TZB_ACTION EPWM_TZ_ACTION_HIGH_Z
+#define myEPWM2_INTERRUPT_SOURCE EPWM_INT_TBCTR_ZERO
 
 //*****************************************************************************
 //

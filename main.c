@@ -7,25 +7,22 @@
 //! \addtogroup driver_example_list
 //! <h1>ePWM Space Vector Modulation</h1>
 //!
-//! This application generates 3-phase PWM outputs using a selectable
-//! modulation method. A fake electrical angle is incremented in the
-//! EPWM1 ISR to produce rotating voltage vectors in open-loop mode.
+//! This application generates 3-phase PWM outputs using Selective Optimal
+//! PWM (SOPWM).  A DMA-driven schedule table loads compare values into
+//! three ePWM modules each carrier cycle; the main loop rebuilds the
+//! schedule once per fundamental period.
 //!
-//! The modulation module (e.g. SVM) is kept separate so it can be
-//! replaced with another method (e.g. SINPWM, DPWM) without
-//! modifying this file beyond the #include and function calls.
-//!
-//!  - ePWM1 drives Phase A (sync source, generates ISR)
-//!  - ePWM2 drives Phase B (synced to ePWM1)
-//!  - ePWM3 drives Phase C (synced to ePWM1)
+//!  - ePWM1 drives Phase A (sync source, generates ISR, DMA CH0)
+//!  - ePWM4 drives Phase B (synced to ePWM1, DMA CH1)
+//!  - ePWM2 drives Phase C (synced to ePWM1, DMA CH2)
 //!
 //! \b External \b Connections \n
 //! - GPIO0 EPWM1A (Phase A high-side)
 //! - GPIO1 EPWM1B (Phase A low-side)
-//! - GPIO2 EPWM2A (Phase B high-side)
-//! - GPIO3 EPWM2B (Phase B low-side)
-//! - GPIO4 EPWM3A (Phase C high-side)
-//! - GPIO5 EPWM3B (Phase C low-side)
+//! - GPIO6 EPWM4A (Phase B high-side)
+//! - GPIO7 EPWM4B (Phase B low-side)
+//! - GPIO2 EPWM2A (Phase C high-side)
+//! - GPIO3 EPWM2B (Phase C low-side)
 //! - GPIO26 ISR timing toggle (optional)
 //!
 //! \b Watch \b Variables \n
@@ -49,7 +46,7 @@
 
 // ---------------------------------------------------------------------------
 // SOPWM schedule parameters
-//   SOPWM_TBPRD : must match TBPRD configured in SysConfig for ePWM1/4/7
+//   SOPWM_TBPRD : must match TBPRD configured in SysConfig for ePWM1/4/2
 //                 100 MHz / 50 kHz = 2000 counts
 //   sopwm_N_cmd : pulse number — 7, 9, 11, 13, or 15 (writable from debugger)
 //   SOPWM_M_INIT: starting modulation index (main loop updates each fundamental)
@@ -58,7 +55,7 @@
 #define SOPWM_N_INIT   7U
 #define SOPWM_M_INIT   0.50f
 
-// Runtime pulse number — write 7, 11, or 15 from CCS debugger to change live
+// Runtime pulse number — write 7, 9, 11, 13, or 15 from CCS debugger to change live
 volatile uint16_t sopwm_N_cmd = SOPWM_N_INIT;
 
 // Modulation index command — write from debugger or closed-loop controller
@@ -140,7 +137,7 @@ void main(void)
                         (const void *)(myEPWM4_BASE + EPWM_O_CMPA + 1U),
                         (const void *)&sopwm_sched[1][0][0]);
     DMA_configAddresses(myDMA2_BASE,
-                        (const void *)(myEPWM7_BASE + EPWM_O_CMPA + 1U),
+                        (const void *)(myEPWM2_BASE + EPWM_O_CMPA + 1U),
                         (const void *)&sopwm_sched[2][0][0]);
 
     // Start all three DMA channels — they will auto-trigger on ePWM ZERO.
@@ -206,7 +203,7 @@ __interrupt void epwm1ISR(void)
     //
     // Advance carrier-cycle index; set sopwm_fund_tick at fundamental boundary;
     // swap double-buffer if SOPWM_CommitSchedule() was called by main loop.
-    // DMA loads CMPA/CMPB into ePWM1/4/7 shadow registers automatically —
+    // DMA loads CMPA/CMPB into ePWM1/4/2 shadow registers automatically —
     // no manual EPWM_setCounterCompareValue() calls needed here.
     //
     SOPWM_schedISR();
@@ -224,7 +221,7 @@ __interrupt void epwm1ISR(void)
     }
     if (sopwm_cycle_idx == 18U)  // PhC slot[17]: expect cmpa≈1124
     {
-        dbg_phC_cmpa_slot17 = EPWM_getCounterCompareValue(myEPWM7_BASE, EPWM_COUNTER_COMPARE_A);
+        dbg_phC_cmpa_slot17 = EPWM_getCounterCompareValue(myEPWM2_BASE, EPWM_COUNTER_COMPARE_A);
     }
 
     // After a fundamental rollover, re-point DMA SRC to the newly activated
@@ -242,7 +239,7 @@ __interrupt void epwm1ISR(void)
                             (const void *)(myEPWM4_BASE + EPWM_O_CMPA + 1U),
                             (const void *)&sopwm_sched[1][sopwm_sched_active][0]);
         DMA_configAddresses(myDMA2_BASE,
-                            (const void *)(myEPWM7_BASE + EPWM_O_CMPA + 1U),
+                            (const void *)(myEPWM2_BASE + EPWM_O_CMPA + 1U),
                             (const void *)&sopwm_sched[2][sopwm_sched_active][0]);
     }
 
