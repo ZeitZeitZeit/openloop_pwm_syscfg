@@ -116,10 +116,10 @@ extern uint16_t sopwm_num_angles;
 // DMA-Driven Schedule Table API
 // ============================================================================
 
-#define SOPWM_N_CARR          50U      /* carrier cycles per fundamental        */
+#define SOPWM_N_CARR          100U     /* carrier cycles per fundamental (50 kHz/100 = 500 Hz) */
 #define SOPWM_CMP_OFF         0xFFFFU  /* disabled CMP value — never fires      */
-#define SOPWM_PHASE_B_OFFSET  17U      /* cycle shift for phase B (≈120°)       */
-#define SOPWM_PHASE_C_OFFSET  33U      /* cycle shift for phase C (≈240°)       */
+#define SOPWM_PHASE_B_OFFSET  33U      /* slot rotation for phase B (≈120°) */
+#define SOPWM_PHASE_C_OFFSET  67U      /* slot rotation for phase C (≈240°) */
 
 /*
  * One carrier-cycle compare pair.  Packed into the DMA source table.
@@ -133,7 +133,7 @@ typedef struct {
 
 /*
  * Double-buffered schedule tables — [phase][buffer][cycle]
- *   phase  : 0=A (ePWM1), 1=B (ePWM4), 2=C (ePWM2)
+ *   phase  : 0=A (ePWM6), 1=B (ePWM5), 2=C (ePWM3)
  *   buffer : 0 or 1 (double-buffer)
  *   cycle  : 0..SOPWM_N_CARR-1
  *
@@ -155,7 +155,7 @@ extern volatile uint16_t sopwm_fund_tick;
 extern volatile uint16_t sopwm_init_done;   /* expect 1 after init           */
 extern volatile uint16_t sopwm_lut_n_base;  /* expect 3 for N=7              */
 extern volatile uint16_t sopwm_build_count; /* expect 2 after InitSchedule   */
-extern          uint16_t sopwm_cycle_idx;   /* current carrier cycle 0..49   */
+extern          uint16_t sopwm_cycle_idx;   /* current carrier cycle 0..99   */
 
 /*
  * SOPWM_InitSchedule
@@ -175,7 +175,7 @@ void SOPWM_InitSchedule(float m, uint16_t N, uint16_t tbprd);
 /*
  * SOPWM_BuildSchedule
  *
- * Compute the 50-slot CMPA/CMPB schedule for all three phases from the
+ * Compute the N_CARR-slot CMPA/CMPB schedule for all three phases from the
  * current modulation index and pulse number.  Writes into the INACTIVE
  * buffer.  Call from the main loop whenever sopwm_fund_tick is set.
  * Follow with SOPWM_CommitSchedule() to arm the new buffer for DMA swap.

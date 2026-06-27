@@ -424,6 +424,9 @@ extern void Device_initGPIO(void);
 //! \return None
 //
 //*****************************************************************************
+extern volatile const char *Device_assertFile;
+extern volatile uint32_t    Device_assertLine;
+
 extern void __error__(const char *filename, uint32_t line);
 
 //*****************************************************************************

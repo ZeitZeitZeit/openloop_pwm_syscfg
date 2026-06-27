@@ -55,6 +55,9 @@ using std::memcpy;
 #define PASS 0
 #define FAIL 1
 
+volatile const char *Device_assertFile = NULL;
+volatile uint32_t    Device_assertLine = 0U;
+
 uint32_t Example_PassCount = 0;
 uint32_t Example_Fail = 0;
 
@@ -319,8 +322,10 @@ bool Device_verifyXTAL(float freq)
 void __error__(const char *filename, uint32_t line)
 {
     //
-    // An ASSERT condition was evaluated as false. You can use the filename and
-    // line parameters to determine what went wrong.
+    // An ASSERT condition was evaluated as false. Watch Device_assertFile and
+    // Device_assertLine in CCS to see which check failed.
     //
+    Device_assertFile = filename;
+    Device_assertLine = line;
     ESTOP0;
 }

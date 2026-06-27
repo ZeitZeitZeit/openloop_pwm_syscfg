@@ -664,17 +664,41 @@ static volatile uint16_t sopwm_swap_pending = 0U;
 uint16_t                 sopwm_cycle_idx    = 0U;
 static uint16_t          sopwm_sched_next   = 1U;
 
-/* 7.2 degrees per carrier cycle at 50 cycles/period */
+/* 3.6 degrees per carrier cycle at 100 cycles/period (500 Hz fundamental) */
 #define SOPWM_CYCLE_SPAN_DEG  (360.0f / (float)SOPWM_N_CARR)
 
-static const float SOPWM_PHASE_OFFSET_DEG[3] = { 0.0f, 120.0f, 240.0f };
+static const uint16_t SOPWM_PHASE_SLOT_OFFSET[3] = {
+    0U,
+    SOPWM_PHASE_B_OFFSET,
+    SOPWM_PHASE_C_OFFSET
+};
+
+/*
+ * sopwm_copy_rotated_phase
+ *
+ * Phase B/C schedules are slot-rotated copies of phase A so all three ePWM
+ * outputs share the same pulse pattern, shifted by 120° / 240° on the
+ * carrier slot grid.
+ */
+static void sopwm_copy_rotated_phase(
+        uint16_t          dst_ph,
+        uint16_t          src_ph,
+        uint16_t          slot_offset,
+        uint16_t          buf_idx)
+{
+    const SOPWM_CycleCmp_t *src = sopwm_sched[src_ph][buf_idx];
+    SOPWM_CycleCmp_t       *dst = sopwm_sched[dst_ph][buf_idx];
+    uint16_t                k;
+
+    for (k = 0U; k < SOPWM_N_CARR; k++) {
+        dst[k] = src[(k + slot_offset) % SOPWM_N_CARR];
+    }
+}
 
 /*
  * sopwm_build_phase
  *
  * Populate one phase's schedule in the inactive buffer.
- * global_deg[] contains all 4*n_base angles (already offset and wrapped
- * to [0, 360°)) for this phase.
  */
 static void sopwm_build_phase(
         const float      *global_deg,
@@ -688,25 +712,20 @@ static void sopwm_build_phase(
     uint16_t          i, slot, counts;
     float             local_ang;
 
-    /* Mark all slots as inactive */
     for (i = 0U; i < SOPWM_N_CARR; i++) {
         tbl[i].cmpa = SOPWM_CMP_OFF;
         tbl[i].cmpb = SOPWM_CMP_OFF;
     }
 
-    /* Bin each angle into its carrier-cycle slot */
     for (i = 0U; i < total; i++) {
         slot = (uint16_t)(global_deg[i] / SOPWM_CYCLE_SPAN_DEG);
         if (slot >= SOPWM_N_CARR) slot = SOPWM_N_CARR - 1U;
 
-        /* Local position within the cycle → counter counts */
         local_ang = global_deg[i] - (float)slot * SOPWM_CYCLE_SPAN_DEG;
         counts    = (uint16_t)((local_ang / SOPWM_CYCLE_SPAN_DEG)
                                * (float)tbprd + 0.5f);
-        if (counts >= tbprd) counts = tbprd - 1U;  /* clamp */
+        if (counts >= tbprd) counts = tbprd - 1U;
 
-        /* First event in slot → CMPA; second → CMPB.
-         * Keep CMPA < CMPB so events fire in chronological order. */
         if (tbl[slot].cmpa == SOPWM_CMP_OFF) {
             tbl[slot].cmpa = counts;
         } else if (tbl[slot].cmpb == SOPWM_CMP_OFF) {
@@ -717,25 +736,43 @@ static void sopwm_build_phase(
                 tbl[slot].cmpb = counts;
             }
         }
-        /* >2 events in one slot: silently dropped.
-         * This only occurs at m >= 0.97 boundary cycles — see check script. */
     }
 
-    /* Enforce half-wave symmetry: force a toggle at exactly 180° electrical.
-     * Phase A: 0° + 180° = 180° → slot 25
-     * Phase B: 120° + 180° = 300° → slot 41
-     * Phase C: 240° + 180° = 60°  → slot 8
-     * 180° is the leading edge of mid_slot (local angle = 0), same mapping
-     * as LUT angles — NOT tbprd/2 (that lands at 180° + 3.6° in slot 25). */
+    /* Enforce half-wave symmetry: force a toggle at exactly 180° (phase A).
+     * B/C inherit this event via slot rotation (+33 / +67 slots). */
     float mid_deg = phase_offset_deg + 180.0f;
     if (mid_deg >= 360.0f) mid_deg -= 360.0f;
     uint16_t mid_slot = (uint16_t)(mid_deg / SOPWM_CYCLE_SPAN_DEG);
     if (mid_slot >= SOPWM_N_CARR) mid_slot = SOPWM_N_CARR - 1U;
-    uint16_t mid_counts = 0U;  /* local angle 0 → exact 180° boundary */
+    uint16_t mid_counts = 0U;
     if (tbl[mid_slot].cmpa == SOPWM_CMP_OFF) {
         tbl[mid_slot].cmpa = mid_counts;
     } else if (tbl[mid_slot].cmpb == SOPWM_CMP_OFF) {
         tbl[mid_slot].cmpb = mid_counts;
+    }
+
+    {
+        uint16_t n_toggles = 0U;
+
+        for (i = 0U; i < SOPWM_N_CARR; i++) {
+            if (tbl[i].cmpa != SOPWM_CMP_OFF) {
+                n_toggles++;
+            }
+            if (tbl[i].cmpb != SOPWM_CMP_OFF) {
+                n_toggles++;
+            }
+        }
+
+        if ((n_toggles & 1U) != 0U) {
+            if (tbl[0].cmpa == SOPWM_CMP_OFF) {
+                tbl[0].cmpa = 0U;
+            } else if (tbl[0].cmpa != 0U && tbl[0].cmpb == SOPWM_CMP_OFF) {
+                tbl[0].cmpb = tbl[0].cmpa;
+                tbl[0].cmpa = 0U;
+            } else if (tbl[SOPWM_N_CARR - 1U].cmpb == SOPWM_CMP_OFF) {
+                tbl[SOPWM_N_CARR - 1U].cmpb = tbprd - 1U;
+            }
+        }
     }
 }
 
@@ -760,9 +797,7 @@ void SOPWM_BuildSchedule(float m, uint16_t N, uint16_t tbprd)
 {
     float    base_deg[7];
     float    all_angles[28];   /* 4 * 7 max */
-    float    shifted[28];
     uint16_t n_base, total, ph, i;
-    float    offset, wrapped;
 
     /* Fetch N base angles (degrees, Q1 only) from LUT */
     n_base = SOPWM_GetAngles(m, N, base_deg);
@@ -785,22 +820,13 @@ void SOPWM_BuildSchedule(float m, uint16_t N, uint16_t tbprd)
         all_angles[3U*n_base + i] = 360.0f
                                     - base_deg[n_base - 1U - i]; /* Q4 */
 
-    /* Build each phase with its electrical offset (0°, 120°, 240°) */
-    for (ph = 0U; ph < 3U; ph++) {
-        offset = SOPWM_PHASE_OFFSET_DEG[ph];
-        if (offset == 0.0f) {
-            sopwm_build_phase(all_angles, total, tbprd,
-                              sopwm_sched_next, ph, offset);
-        } else {
-            /* Shift all angles and wrap to [0, 360°) */
-            for (i = 0U; i < total; i++) {
-                wrapped    = all_angles[i] + offset;
-                if (wrapped >= 360.0f) wrapped -= 360.0f;
-                shifted[i] = wrapped;
-            }
-            sopwm_build_phase(shifted, total, tbprd,
-                              sopwm_sched_next, ph, offset);
-        }
+    /* Phase A: LUT → slot table.  Phases B/C: rotated copies of A. */
+    sopwm_build_phase(all_angles, total, tbprd,
+                      sopwm_sched_next, 0U, 0.0f);
+    for (ph = 1U; ph < 3U; ph++) {
+        sopwm_copy_rotated_phase(ph, 0U,
+                                 SOPWM_PHASE_SLOT_OFFSET[ph],
+                                 sopwm_sched_next);
     }
 }
 
