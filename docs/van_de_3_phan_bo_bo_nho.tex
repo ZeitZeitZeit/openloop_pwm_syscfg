@@ -1,0 +1,244 @@
+% Phần riêng: Vấn đề 3 — Phân bố bộ nhớ (được \input từ báo cáo chính)
+% Biên dịch độc lập: pdflatex van_de_3_phan_bo_bo_nho_standalone.tex
+
+\section{Vấn đề 3: Phân bố bộ nhớ FLASH/RAM}
+\label{sec:van_de_3_mem}
+
+\subsection{Phát biểu vấn đề}
+
+Triển khai SOPWM trên TMS320F280049C không chỉ cần ``có đủ byte'' --- mỗi loại dữ liệu phải nằm đúng \textbf{loại bộ nhớ vật lý} và đúng \textbf{section liên kết}, nếu không hệ thống sẽ lỗi im lặng hoặc build thất bại. Đây là bài toán cấu trúc, không phải tối ưu phụ.
+
+\paragraph{(a) Khối lượng LUT góc lớn so với RAM LS.}
+Mỗi cặp $(N, m)$ cần lưu trước $M=(N-1)/2$ góc chuyển mạch (độ). Với năm mức $N$ và $100$ bước $m$, tổng cộng:
+\begin{equation}
+  S_{\mathrm{LUT,naive}} = 100 \times 4 \times (3+4+5+6+7) = \SI{10000}{byte}.
+  \label{eq:lut_total}
+\end{equation}
+Nếu đặt toàn bộ LUT vào RAM (như bảng sin/cos tham chiếu trong module SVPWM trước đó), section \texttt{.bss}/\texttt{.const} dễ \textbf{tràn RAMLS5} --- lỗi linker đã ghi nhận trong \texttt{log.md}.
+
+\paragraph{(b) Bảng lịch runtime không được nằm FLASH.}
+Sau khi tra LUT, \texttt{SOPWM\_BuildSchedule()} ghi liên tục vào bảng $\texttt{sopwm\_sched}$ --- nguồn burst của DMA. Dữ liệu này:
+\begin{itemize}[noitemsep]
+  \item thay đổi mỗi chu kỳ cơ bản (\SI{500}{\hertz});
+  \item phải nằm trong vùng RAM mà \textbf{DMA bus master} truy cập được (GS RAM trên F28004x);
+  \item cần \textbf{hai bản sao} (double buffer) để CPU ghi buffer inactive trong khi DMA đọc buffer active.
+\end{itemize}
+Đặt nhầm vào RAM LS hoặc FLASH sẽ khiến DMA đọc sai, hoặc ghi CMP ra giá trị \texttt{0xFFFF}.
+
+\paragraph{(c) Xung đột nhu cầu truy cập.}
+Cùng một lúc hệ thống cần:
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+  \toprule
+  Thành phần & Truy cập & Ràng buộc vùng \\
+  \midrule
+  LUT góc & CPU đọc, không đổi & FLASH \texttt{.const} \\
+  \texttt{sopwm\_sched} & CPU ghi + DMA đọc & RAMGS, section riêng \\
+  Stack / biến debug & CPU R/W & RAMLS / \texttt{.bss} \\
+  Mã \texttt{BuildSchedule} & CPU thực thi & FLASH \texttt{.text} \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{(d) Chi phí bộ nhớ tăng theo tham số thiết kế.}
+Nếu lưu thẳng $4M$ góc đã mở rộng (thay vì $M$ góc Q1), dung lượng LUT nhân bốn:
+\begin{equation}
+  S_{\mathrm{LUT,full}} = 4 \times S_{\mathrm{LUT,naive}} = \SI{40}{kB}.
+\end{equation}
+Tương tự, bảng lịch tăng tuyến tính theo $N_{\mathrm{carr}}$ và số pha:
+\begin{equation}
+  S_{\mathrm{sched}} = N_{\phi} \times N_{\mathrm{buf}} \times N_{\mathrm{carr}} \times \sizeof(\texttt{SOPWM\_CycleCmp\_t}).
+  \label{eq:sched_size}
+\end{equation}
+Với $N_{\phi}=3$, $N_{\mathrm{buf}}=2$, $N_{\mathrm{carr}}=100$, mỗi phần tử 4 byte:
+\begin{equation}
+  S_{\mathrm{sched}} = 3 \times 2 \times 100 \times 4 = \SI{2400}{byte}.
+  \label{eq:sched_2400}
+\end{equation}
+
+\noindent\textbf{Tóm lại,} vấn đề cần giải quyết là: \emph{phân tách dữ liệu tĩnh (LUT) và dữ liệu động (bảng lịch DMA), map đúng section trong linker, đồng thời tối giểm footprint nhờ đối xứng quarter-wave --- không tính góc runtime trên CPU.}
+
+\subsection{Cấu hình bộ nhớ trong dự án}
+
+\subsubsection{Bản đồ vật lý F280049C (trích \texttt{28004x\_generic\_flash\_lnk.cmd})}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Vùng bộ nhớ on-chip liên quan SOPWM.}
+  \label{tab:physical_mem}
+  \begin{tabular}{@{}llll@{}}
+    \toprule
+    Symbol linker & Địa chỉ gốc & Dung lượng & Vai trò trong SOPWM \\
+    \midrule
+    \texttt{FLASH\_BANK0\_SEC4} & \texttt{0x084000} & \SI{4}{\kibi\byte} & Section \texttt{.const} --- LUT \\
+    \texttt{RAMGS0} & \texttt{0x00C000} & \SI{8}{\kibi\byte} & Section \texttt{ramgs0} --- \texttt{sopwm\_sched} \\
+    \texttt{RAMLS5} & \texttt{0x00A800} & \SI{2}{\kibi\byte} & \texttt{.bss}, \texttt{.data} --- biến toàn cục \\
+    \texttt{RAMM1} & \texttt{0x000400} & $\approx$\SI{1}{\kibi\byte} & Stack \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsubsection{Cấu hình section trong file liên kết}
+
+File \texttt{28004x\_generic\_flash\_lnk.cmd} khai báo hai section \textbf{do dự án thêm} (ngoài mặc định C2000Ware):
+
+\begin{lstlisting}[language=]
+/* PAGE 1 -- MEMORY block */
+RAMGS0 : origin = 0x00C000, length = 0x002000   /* 8 KiB */
+
+/* SECTIONS */
+.const   : > FLASH_BANK0_SEC4,  PAGE = 0, ALIGN(4)   /* const float LUT */
+ramgs0    : > RAMGS0,            PAGE = 1             /* DMA source table */
+ramgs1    : > RAMGS1,            PAGE = 1             /* du phong mo rong */
+\end{lstlisting}
+
+\paragraph{Lý do chọn \texttt{FLASH\_BANK0\_SEC4} cho \texttt{.const}.}
+Sector \SI{4}{\kibi\byte} đủ chứa $\approx$\SI{10}{\kibi\byte} LUT (chiếm $\approx 24\%$ sector), tách biệt khỏi \texttt{.text} (SEC2/3/5) và \texttt{.cinit} (SEC1), tránh phải gom mã và hằng số vào cùng sector gây khó mở rộng.
+
+\paragraph{Lý do chọn \texttt{RAMGS0} cho bảng lịch.}
+Theo TRM F28004x, DMA có thể truy cập Global Shared RAM (GS). \texttt{sopwm\_sched} chiếm \SI{2400}{byte} trên \SI{8192}{byte} RAMGS0 ($\approx 29\%$), còn dư cho biến DMA khác. Section \texttt{ramgs1} được khai báo sẵn trên RAMGS1 (\SI{8}{\kibi\byte}) cho mở rộng sau này.
+
+\subsubsection{Ràng buộc build CCS}
+
+\begin{itemize}[noitemsep]
+  \item Cấu hình \textbf{CPU1\_FLASH} (hoặc tương đương) dùng \texttt{28004x\_generic\_flash\_lnk.cmd}.
+  \item \texttt{Flash\_initModule(..., DEVICE\_FLASH\_WAITSTATES)} trong \texttt{device.c}: \texttt{WAITSTATES = 4} @ \SI{100}{\mega\hertz} --- LUT đọc từ FLASH vẫn đủ nhanh vì \texttt{BuildSchedule} chỉ chạy \SI{500}{\hertz}, không phải \SI{50}{\kilo\hertz}.
+  \item DMA \texttt{srcWrapSize = 200} trong SysConfig khớp $2 \times N_{\mathrm{carr}}$ word nguồn (double buffer liên tiếp trong RAM).
+\end{itemize}
+
+\subsection{Đóng góp của mã nguồn}
+
+Bảng~\ref{tab:code_contrib} tóm tắt cách code giải quyết vấn đề phân bố bộ nhớ.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Đóng góp mã nguồn cho bài toán bộ nhớ.}
+  \label{tab:code_contrib}
+  \small
+  \begin{tabular}{@{}p{3.2cm}p{4.2cm}p{5.8cm}@{}}
+    \toprule
+    Thành phần & File & Đóng góp \\
+    \midrule
+    LUT tĩnh &
+    \texttt{sopwm.c} &
+    Năm mảng \texttt{const float SOPWM\_LUT\_N*} ($\approx$\SI{10}{kB}) tự động vào \texttt{.const}/FLASH; không dùng malloc, không copy sang RAM lúc khởi động. \\
+    \addlinespace
+    Tra cứu $O(1)$ &
+    \texttt{sopwm.h} &
+    \texttt{SOPWM\_GetAngles()} \texttt{static inline}: map $m \rightarrow i_m=\mathrm{round}(100m-1)$, \texttt{switch(N)} --- thời gian xác định, không stack frame. \\
+    \addlinespace
+    Placement DMA &
+    \texttt{sopwm.c} &
+    \texttt{\#pragma DATA\_SECTION(sopwm\_sched, "ramgs0")} buộc linker đặt bảng vào RAMGS0; comment ghi rõ yêu cầu linker. \\
+    \addlinespace
+    Kiểu dữ liệu gọn &
+    \texttt{sopwm.h} &
+    \texttt{SOPWM\_CycleCmp\_t} = 2$\times$\texttt{uint16\_t} (4 byte/slot), không dùng \texttt{float} trong bảng DMA --- giảm $S_{\mathrm{sched}}$ và khớp burst DMA (2 word). \\
+    \addlinespace
+    Double buffer &
+    \texttt{sopwm.c/h} &
+    \texttt{sopwm\_sched[3][2][SOPWM\_N\_CARR]}; \texttt{sopwm\_sched\_active}, \texttt{sopwm\_sched\_next}; \texttt{BuildSchedule} ghi \texttt{[next]}, ISR hoán đổi --- tránh ghi đè vùng DMA đang đọc. \\
+    \addlinespace
+    Tiết kiệm FLASH &
+    \texttt{sopwm.c} &
+    \texttt{SOPWM\_BuildSchedule()}: chỉ đọc $M$ góc Q1 từ LUT, mở rộng $4M$ góc bằng~\eqref{eq:quarter_expand} trên stack (\texttt{all\_angles[28]}) --- không lưu $4M$ góc/cấp $m$ trong FLASH. \\
+    \addlinespace
+    Linker &
+    \texttt{28004x\_generic\_flash\_lnk.cmd} &
+    Map \texttt{.const} sang FLASH, \texttt{ramgs0} sang RAMGS0; tách LUT khỏi RAMLS tránh tràn như SVPWM. \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsubsection{Minh hoạ placement trong \texttt{sopwm.c}}
+
+LUT --- compiler đặt vào \texttt{.const} (FLASH):
+\begin{lstlisting}[language=C]
+const float SOPWM_LUT_N7[SOPWM_M_COUNT][3] = {
+    /* m=0.01 */ {60.118f, 80.177f, 80.364f},
+    /* ... 100 rows ... */
+};
+\end{lstlisting}
+
+Bảng lịch --- placement explicit sang RAMGS:
+\begin{lstlisting}[language=C]
+#pragma DATA_SECTION(sopwm_sched, "ramgs0")
+SOPWM_CycleCmp_t sopwm_sched[3][2][SOPWM_N_CARR];
+\end{lstlisting}
+
+BuildSchedule --- đọc FLASH, ghi RAMGS (buffer inactive):
+\begin{lstlisting}[language=C]
+void SOPWM_BuildSchedule(float m, uint16_t N, uint16_t tbprd)
+{
+    float base_deg[7];
+    float all_angles[28];   /* 4*7 max -- stack, khong FLASH */
+    n_base = SOPWM_GetAngles(m, N, base_deg);  /* doc LUT FLASH */
+    /* ... mo rong quarter-wave vao all_angles[] ... */
+    sopwm_bin_lut(all_angles, total, tbprd,
+                  sopwm_sched[0][sopwm_sched_next]);  /* ghi RAMGS */
+}
+\end{lstlisting}
+
+\subsection{Sơ đồ phân vùng logic}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    scale=0.92,
+    every node/.style={font=\small},
+    flash/.style={draw, fill=orange!15, minimum width=4.8cm, minimum height=1.1cm, align=center},
+    ramgs/.style={draw, fill=green!15, minimum width=4.8cm, minimum height=1.1cm, align=center},
+    raml/.style={draw, fill=blue!10, minimum width=4.8cm, minimum height=0.9cm, align=center},
+    arr/.style={-{Stealth}, thick}
+  ]
+    \node[flash] (fconst) at (0,2.4) {\textbf{FLASH SEC4}\\ \texttt{.const}: \texttt{SOPWM\_LUT\_N7..N15}\\ $\approx$\SI{10}{\kibi\byte}};
+    \node[flash] (ftext) at (0,1.0) {\textbf{FLASH SEC2/3/5}\\ \texttt{.text}: \texttt{BuildSchedule}, ISR};
+
+    \node[ramgs] (gs) at (7,2.4) {\textbf{RAMGS0} (\texttt{ramgs0})\\ \texttt{sopwm\_sched[3][2][100]}\\ \SI{2400}{byte} --- nguon DMA};
+    \node[raml] (ls) at (7,1.0) {\textbf{RAMLS5}\\ \texttt{.bss}/\texttt{.data}: \texttt{sopwm\_m\_cmd}, debug};
+
+    \draw[arr] (fconst) -- node[above, align=center, font=\scriptsize] {CPU doc\\@ 500 Hz} (gs);
+    \draw[arr] (ftext) -- node[above, align=center, font=\scriptsize] {CPU ghi\\buffer next} (gs);
+    \draw[arr, dashed] (gs.east) -- ++(1.1,0) node[right, align=left, font=\scriptsize] {DMA burst\\50 kHz};
+  \end{tikzpicture}
+  \caption{Phân vùng logic: LUT tĩnh trên FLASH; bảng lịch động trên RAMGS; CPU là cầu nối, DMA đọc trực tiếp RAMGS.}
+  \label{fig:mem_map}
+\end{figure}
+
+\subsection{Chi tiết dung lượng LUT}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Dung lượng từng bảng \texttt{SOPWM\_LUT\_N*}.}
+  \label{tab:lut_breakdown}
+  \begin{tabular}{@{}lccr@{}}
+    \toprule
+    Bảng & Kích thước & Phần tử & Bytes \\
+    \midrule
+    \texttt{SOPWM\_LUT\_N7}  & $100\times 3$ & 300  & 1200 \\
+    \texttt{SOPWM\_LUT\_N9}  & $100\times 4$ & 400  & 1600 \\
+    \texttt{SOPWM\_LUT\_N11} & $100\times 5$ & 500  & 2000 \\
+    \texttt{SOPWM\_LUT\_N13} & $100\times 6$ & 600  & 2400 \\
+    \texttt{SOPWM\_LUT\_N15} & $100\times 7$ & 700  & 2800 \\
+    \midrule
+    \textbf{Tổng} & & 2500 float & \textbf{10000} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Chỉ số tra cứu (code):
+\begin{equation}
+  i_m = \mathrm{round}(100\,m - 1), \qquad i_m \in [0,\,99].
+  \label{eq:lut_index_v3}
+\end{equation}
+
+\subsection{Kết quả và hệ quả thiết kế}
+
+\begin{enumerate}
+  \item \textbf{Linker thành công} với LUT trên FLASH và bảng lịch trên RAMGS --- không tràn RAMLS như phiên bản SVPWM.
+  \item \textbf{DMA hoạt động ổn định} vì nguồn nằm đúng GS RAM; \texttt{srcWrapSize=200} khớp layout $[3\,\text{pha}][2\,\text{buf}][100]$ khi mỗi kênh DMA phục vụ một pha.
+  \item \textbf{Footprint LUT giảm $\times 4$} nhờ lưu $M$ góc Q1 + mở rộng runtime; footprint bảng lịch giảm nhờ \texttt{uint16\_t} thay vì \texttt{float} cho CMP.
+  \item \textbf{Chi phí mở rộng có thể dự báo:} tăng $N_{\mathrm{carr}}$ từ 100 lên 200 sẽ đẩy $S_{\mathrm{sched}}$ lên \SI{4800}{byte}; tăng số mức $m$ từ 100 lên 1000 sẽ nhân mười dung lượng FLASH LUT.
+\end{enumerate}
+
+\noindent\textit{Kiểm tra sau build:} trong CCS, cửa sổ \texttt{Memory Browser} xác nhận địa chỉ \texttt{sopwm\_sched} thuộc vùng \texttt{0x00C000}--\texttt{0x00DFFF}; map file liệt kê \texttt{SOPWM\_LUT\_N*} trong section \texttt{.const}.

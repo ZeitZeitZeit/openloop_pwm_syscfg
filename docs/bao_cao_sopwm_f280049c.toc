@@ -12,16 +12,25 @@
 \contentsline {subsection}{\numberline {3.2}Cấu hình DMA trong dự án}{5}{subsection.3.2}%
 \contentsline {subsection}{\numberline {3.3}Đồng bộ DMA -- ISR -- vòng lặp chính}{6}{subsection.3.3}%
 \contentsline {subsection}{\numberline {3.4}Chỉ số điều chế và cập nhật góc}{6}{subsection.3.4}%
-\contentsline {section}{\numberline {4}Vấn đề 3: Phân bố bộ nhớ FLASH/RAM cho LUT góc}{6}{section.4}%
-\contentsline {subsection}{\numberline {4.1}Quy mô dữ liệu LUT}{7}{subsection.4.1}%
-\contentsline {subsection}{\numberline {4.2}Chiến lược phân vùng bộ nhớ}{7}{subsection.4.2}%
-\contentsline {paragraph}{a) LUT trong FLASH (\texttt {.const}).}{7}{section*.5}%
-\contentsline {paragraph}{b) Tra cứu $O(1)$ theo $m$.}{7}{section*.6}%
-\contentsline {paragraph}{c) Bảng lịch DMA trong RAM GS.}{7}{section*.7}%
-\contentsline {paragraph}{d) Double buffering.}{8}{section*.8}%
-\contentsline {subsection}{\numberline {4.3}Đánh giá trade-off}{8}{subsection.4.3}%
-\contentsline {section}{\numberline {5}Công thức tổng hợp và ví dụ số}{8}{section.5}%
-\contentsline {subsection}{\numberline {5.1}Ví dụ: $N=7$, $m=0{,}50$}{8}{subsection.5.1}%
-\contentsline {subsection}{\numberline {5.2}Điều kiện tính đúng của SOPWM đồng bộ}{8}{subsection.5.2}%
-\contentsline {section}{\numberline {6}Kết luận}{9}{section.6}%
-\contentsline {section}{\numberline {A}Tham chiếu mã nguồn}{9}{appendix.A}%
+\contentsline {section}{\numberline {4}Vấn đề 3: Phân bố bộ nhớ FLASH/RAM}{6}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Phát biểu vấn đề}{6}{subsection.4.1}%
+\contentsline {paragraph}{(a) Khối lượng LUT góc lớn so với RAM LS.}{7}{section*.4}%
+\contentsline {paragraph}{(b) Bảng lịch runtime không được nằm FLASH.}{7}{section*.5}%
+\contentsline {paragraph}{(c) Xung đột nhu cầu truy cập.}{7}{section*.6}%
+\contentsline {paragraph}{(d) Chi phí bộ nhớ tăng theo tham số thiết kế.}{7}{section*.7}%
+\contentsline {subsection}{\numberline {4.2}Cấu hình bộ nhớ trong dự án}{8}{subsection.4.2}%
+\contentsline {subsubsection}{\numberline {4.2.1}Bản đồ vật lý F280049C (trích \texttt {28004x\_generic\_flash\_lnk.cmd})}{8}{subsubsection.4.2.1}%
+\contentsline {subsubsection}{\numberline {4.2.2}Cấu hình section trong file liên kết}{8}{subsubsection.4.2.2}%
+\contentsline {paragraph}{Lý do chọn \texttt {FLASH\_BANK0\_SEC4} cho \texttt {.const}.}{8}{section*.9}%
+\contentsline {paragraph}{Lý do chọn \texttt {RAMGS0} cho bảng lịch.}{8}{section*.10}%
+\contentsline {subsubsection}{\numberline {4.2.3}Ràng buộc build CCS}{8}{subsubsection.4.2.3}%
+\contentsline {subsection}{\numberline {4.3}Đóng góp của mã nguồn}{8}{subsection.4.3}%
+\contentsline {subsubsection}{\numberline {4.3.1}Minh hoạ placement trong \texttt {sopwm.c}}{10}{subsubsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.4}Sơ đồ phân vùng logic}{10}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}Chi tiết dung lượng LUT}{10}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.6}Kết quả và hệ quả thiết kế}{10}{subsection.4.6}%
+\contentsline {section}{\numberline {5}Công thức tổng hợp và ví dụ số}{11}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Ví dụ: $N=7$, $m=0{,}50$}{11}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Điều kiện tính đúng của SOPWM đồng bộ}{11}{subsection.5.2}%
+\contentsline {section}{\numberline {6}Kết luận}{12}{section.6}%
+\contentsline {section}{\numberline {A}Tham chiếu mã nguồn}{12}{appendix.A}%

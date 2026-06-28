@@ -1,0 +1,71 @@
+% !TEX program = pdflatex
+% Tai lieu doc lap — Van de 3: Phan bo bo nho SOPWM / F280049C
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese,english]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{siunitx}
+\usetikzlibrary{arrows.meta,positioning}
+
+\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
+\hypersetup{colorlinks=true,linkcolor=blue}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  breaklines=true,
+  frame=single
+}
+
+% Cong thuc dung chung voi bao cao chinh
+\newcommand{\sizeof}{\text{sizeof}}
+
+\title{%
+  \textbf{Vấn đề 3: Phân bố bộ nhớ FLASH/RAM}\\[0.3em]
+  \large Triển khai SOPWM trên TMS320F280049C
+}
+\author{VietNH \quad|\quad \texttt{epwm\_svm}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Tài liệu riêng phân tích bài toán phân bố bộ nhớ khi triển khai SOPWM: vì sao đây là vấn đề cần giải quyết, cấu hình linker/CCS cụ thể trên F280049C, và đóng góp trực tiếp của mã nguồn (\texttt{sopwm.c/h}, \texttt{28004x\_generic\_flash\_lnk.cmd}).
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% Can label eq:quarter_expand for reference in included file
+\section{Ngữ cảnh ngắn}
+SOPWM cần hai lớp dữ liệu: (1)~LUT góc tĩnh theo $(N,m)$; (2)~bảng lịch CMP động cho DMA. Hai lớp này có ràng buộc vùng nhớ khác nhau --- phần dưới phân tích chi tiết.
+
+\begin{equation}
+  \text{Q1: } \theta_i = \alpha_i;\quad
+  \text{Q2: } 180^\circ - \alpha_{M+1-i};\quad
+  \text{Q3: } 180^\circ + \alpha_i;\quad
+  \text{Q4: } 360^\circ - \alpha_{M+1-i}.
+  \label{eq:quarter_expand}
+\end{equation}
+
+\input{van_de_3_phan_bo_bo_nho.tex}
+
+\section*{Tài liệu liên quan}
+\begin{itemize}
+  \item \texttt{pwm/sopwm/sopwm.c}, \texttt{sopwm.h}
+  \item \texttt{28004x\_generic\_flash\_lnk.cmd}
+  \item \texttt{docs/bao\_cao\_sopwm\_f280049c.tex} --- báo cáo tổng hợp
+\end{itemize}
+
+\end{document}

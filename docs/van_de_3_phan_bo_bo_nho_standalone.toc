@@ -1,0 +1,19 @@
+\babel@toc {english}{}\relax 
+\contentsline {section}{\numberline {1}Ngữ cảnh ngắn}{2}{section.1}%
+\contentsline {section}{\numberline {2}Vấn đề 3: Phân bố bộ nhớ FLASH/RAM}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Phát biểu vấn đề}{2}{subsection.2.1}%
+\contentsline {paragraph}{(a) Khối lượng LUT góc lớn so với RAM LS.}{2}{section*.2}%
+\contentsline {paragraph}{(b) Bảng lịch runtime không được nằm FLASH.}{2}{section*.3}%
+\contentsline {paragraph}{(c) Xung đột nhu cầu truy cập.}{2}{section*.4}%
+\contentsline {paragraph}{(d) Chi phí bộ nhớ tăng theo tham số thiết kế.}{3}{section*.5}%
+\contentsline {subsection}{\numberline {2.2}Cấu hình bộ nhớ trong dự án}{3}{subsection.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.1}Bản đồ vật lý F280049C (trích \texttt {28004x\_generic\_flash\_lnk.cmd})}{3}{subsubsection.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.2}Cấu hình section trong file liên kết}{3}{subsubsection.2.2.2}%
+\contentsline {paragraph}{Lý do chọn \texttt {FLASH\_BANK0\_SEC4} cho \texttt {.const}.}{3}{section*.6}%
+\contentsline {paragraph}{Lý do chọn \texttt {RAMGS0} cho bảng lịch.}{4}{section*.7}%
+\contentsline {subsubsection}{\numberline {2.2.3}Ràng buộc build CCS}{4}{subsubsection.2.2.3}%
+\contentsline {subsection}{\numberline {2.3}Đóng góp của mã nguồn}{4}{subsection.2.3}%
+\contentsline {subsubsection}{\numberline {2.3.1}Minh hoạ placement trong \texttt {sopwm.c}}{4}{subsubsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.4}Sơ đồ phân vùng logic}{4}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Chi tiết dung lượng LUT}{4}{subsection.2.5}%
+\contentsline {subsection}{\numberline {2.6}Kết quả và hệ quả thiết kế}{6}{subsection.2.6}%

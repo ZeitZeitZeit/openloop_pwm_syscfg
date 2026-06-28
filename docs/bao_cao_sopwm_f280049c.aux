@@ -33,26 +33,42 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Đồng bộ DMA -- ISR -- vòng lặp chính}{6}{subsection.3.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Chỉ số điều chế và cập nhật góc}{6}{subsection.3.4}\protected@file@percent }
 \newlabel{eq:m_index}{{19}{6}{Chỉ số điều chế và cập nhật góc}{equation.19}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Vấn đề 3: Phân bố bộ nhớ FLASH/RAM cho LUT góc}{6}{section.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Quy mô dữ liệu LUT}{7}{subsection.4.1}\protected@file@percent }
-\newlabel{eq:lut_size}{{20}{7}{Quy mô dữ liệu LUT}{equation.20}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Dung lượng các bảng \texttt  {SOPWM\_LUT\_N*}.}}{7}{table.caption.4}\protected@file@percent }
-\newlabel{tab:lut_mem}{{2}{7}{Dung lượng các bảng \texttt {SOPWM\_LUT\_N*}}{table.caption.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Chiến lược phân vùng bộ nhớ}{7}{subsection.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{a) LUT trong FLASH (\texttt  {.const}).}{7}{section*.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{b) Tra cứu $O(1)$ theo $m$.}{7}{section*.6}\protected@file@percent }
-\newlabel{eq:lut_index}{{21}{7}{b) Tra cứu $O(1)$ theo $m$}{equation.21}{}}
-\@writefile{toc}{\contentsline {paragraph}{c) Bảng lịch DMA trong RAM GS.}{7}{section*.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{d) Double buffering.}{8}{section*.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Đánh giá trade-off}{8}{subsection.4.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Phân bố bộ nhớ tóm tắt.}}{8}{table.caption.9}\protected@file@percent }
-\newlabel{tab:mem_map}{{3}{8}{Phân bố bộ nhớ tóm tắt}{table.caption.9}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Công thức tổng hợp và ví dụ số}{8}{section.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Ví dụ: $N=7$, $m=0{,}50$}{8}{subsection.5.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Điều kiện tính đúng của SOPWM đồng bộ}{8}{subsection.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Vấn đề 3: Phân bố bộ nhớ FLASH/RAM}{6}{section.4}\protected@file@percent }
+\newlabel{sec:van_de_3_mem}{{4}{6}{Vấn đề 3: Phân bố bộ nhớ FLASH/RAM}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Phát biểu vấn đề}{6}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{(a) Khối lượng LUT góc lớn so với RAM LS.}{7}{section*.4}\protected@file@percent }
+\newlabel{eq:lut_total}{{20}{7}{(a) Khối lượng LUT góc lớn so với RAM LS}{equation.20}{}}
+\@writefile{toc}{\contentsline {paragraph}{(b) Bảng lịch runtime không được nằm FLASH.}{7}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{(c) Xung đột nhu cầu truy cập.}{7}{section*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{(d) Chi phí bộ nhớ tăng theo tham số thiết kế.}{7}{section*.7}\protected@file@percent }
+\newlabel{eq:sched_size}{{22}{7}{(d) Chi phí bộ nhớ tăng theo tham số thiết kế}{equation.22}{}}
+\newlabel{eq:sched_2400}{{23}{7}{(d) Chi phí bộ nhớ tăng theo tham số thiết kế}{equation.23}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Vùng bộ nhớ on-chip liên quan SOPWM.}}{8}{table.caption.8}\protected@file@percent }
+\newlabel{tab:physical_mem}{{2}{8}{Vùng bộ nhớ on-chip liên quan SOPWM}{table.caption.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Cấu hình bộ nhớ trong dự án}{8}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.1}Bản đồ vật lý F280049C (trích \texttt  {28004x\_generic\_flash\_lnk.cmd})}{8}{subsubsection.4.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.2}Cấu hình section trong file liên kết}{8}{subsubsection.4.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Lý do chọn \texttt  {FLASH\_BANK0\_SEC4} cho \texttt  {.const}.}{8}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Lý do chọn \texttt  {RAMGS0} cho bảng lịch.}{8}{section*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.3}Ràng buộc build CCS}{8}{subsubsection.4.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Đóng góp của mã nguồn}{8}{subsection.4.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Đóng góp mã nguồn cho bài toán bộ nhớ.}}{9}{table.caption.11}\protected@file@percent }
+\newlabel{tab:code_contrib}{{3}{9}{Đóng góp mã nguồn cho bài toán bộ nhớ}{table.caption.11}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.3.1}Minh hoạ placement trong \texttt  {sopwm.c}}{10}{subsubsection.4.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Sơ đồ phân vùng logic}{10}{subsection.4.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Phân vùng logic: LUT tĩnh trên FLASH; bảng lịch động trên RAMGS; CPU là cầu nối, DMA đọc trực tiếp RAMGS.}}{10}{figure.caption.12}\protected@file@percent }
+\newlabel{fig:mem_map}{{2}{10}{Phân vùng logic: LUT tĩnh trên FLASH; bảng lịch động trên RAMGS; CPU là cầu nối, DMA đọc trực tiếp RAMGS}{figure.caption.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Chi tiết dung lượng LUT}{10}{subsection.4.5}\protected@file@percent }
+\newlabel{eq:lut_index_v3}{{24}{10}{Chi tiết dung lượng LUT}{equation.24}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Kết quả và hệ quả thiết kế}{10}{subsection.4.6}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Dung lượng từng bảng \texttt  {SOPWM\_LUT\_N*}.}}{11}{table.caption.13}\protected@file@percent }
+\newlabel{tab:lut_breakdown}{{4}{11}{Dung lượng từng bảng \texttt {SOPWM\_LUT\_N*}}{table.caption.13}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Công thức tổng hợp và ví dụ số}{11}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Ví dụ: $N=7$, $m=0{,}50$}{11}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Điều kiện tính đúng của SOPWM đồng bộ}{11}{subsection.5.2}\protected@file@percent }
 \bibcite{holmes}{1}
 \bibcite{ti_epwm}{2}
 \bibcite{ti_sopwm}{3}
-\@writefile{toc}{\contentsline {section}{\numberline {6}Kết luận}{9}{section.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {A}Tham chiếu mã nguồn}{9}{appendix.A}\protected@file@percent }
-\gdef \@abspage@last{9}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Kết luận}{12}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A}Tham chiếu mã nguồn}{12}{appendix.A}\protected@file@percent }
+\gdef \@abspage@last{12}

@@ -21,6 +21,7 @@
 
 \geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
 \hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+\newcommand{\sizeof}{\text{sizeof}}
 
 \lstset{
   basicstyle=\ttfamily\small,
@@ -272,99 +273,8 @@ Chỉ số điều chế (open-loop hoặc closed-loop):
 
 Mỗi chu kỳ cơ bản, $m$ mới $\Rightarrow$ tra LUT $\Rightarrow$ dựng lại toàn bộ bảng 100 khe $\times$ 3 pha. DMA đảm bảo \textbf{mỗi thay đổi góc} (dù nhỏ) được phản ánh đúng vào CMP \emph{đúng chu kỳ mang}, điều kiện cần của điều chế đồng bộ.
 
-%==============================================================================
-\section{Vấn đề 3: Phân bố bộ nhớ FLASH/RAM cho LUT góc}
-%==============================================================================
-
-Sau khi xác định kiến trúc DMA, bài toán tiếp theo là \emph{lưu trữ} dữ liệu góc và bảng lịch sao cho vừa đủ dung lượng on-chip, vừa đáp ứng yêu cầu truy cập của CPU (BuildSchedule) và DMA (đọc nguồn burst).
-
-\subsection{Quy mô dữ liệu LUT}
-
-Mỗi bảng LUT lưu $100$ mức chỉ số điều chế $m \in \{0{,}01, 0{,}02, \ldots, 1{,}00\}$ và $M$ góc (float 32-bit). Tổng dung lượng:
-\begin{equation}
-  S_{\mathrm{LUT}} = \sum_{N} \bigl(\texttt{SOPWM\_M\_COUNT} \times M \times 4\bigr)
-  = 100 \times 4 \times (3+4+5+6+7)
-  = \SI{10000}{byte} \approx \SI{9.8}{\kibi\byte}.
-  \label{eq:lut_size}
-\end{equation}
-
-Chi tiết từng bảng:
-\begin{table}[htbp]
-  \centering
-  \caption{Dung lượng các bảng \texttt{SOPWM\_LUT\_N*}.}
-  \label{tab:lut_mem}
-  \begin{tabular}{@{}lccc@{}}
-    \toprule
-    Bảng & Kích thước & Số phần tử & Bytes \\
-    \midrule
-    \texttt{SOPWM\_LUT\_N7}  & $100 \times 3$ & 300  & 1200 \\
-    \texttt{SOPWM\_LUT\_N9}  & $100 \times 4$ & 400  & 1600 \\
-    \texttt{SOPWM\_LUT\_N11} & $100 \times 5$ & 500  & 2000 \\
-    \texttt{SOPWM\_LUT\_N13} & $100 \times 6$ & 600  & 2400 \\
-    \texttt{SOPWM\_LUT\_N15} & $100 \times 7$ & 700  & 2800 \\
-    \midrule
-    \textbf{Tổng} & & 2500 & \textbf{10000} \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\subsection{Chiến lược phân vùng bộ nhớ}
-
-\paragraph{a) LUT trong FLASH (\texttt{.const}).}
-Các mảng \texttt{const float SOPWM\_LUT\_N*} được liên kết vào section \texttt{.const} trên FLASH (\texttt{FLASH\_BANK0\_SEC4} trong \texttt{28004x\_generic\_flash\_lnk.cmd}). Đây là lựa chọn tự nhiên vì:
-\begin{itemize}[noitemsep]
-  \item dữ liệu \textbf{chỉ đọc}, không thay đổi khi vận hành;
-  \item giải phóng RAM LS/GS quý giá cho stack, biến điều khiển và bảng lịch DMA;
-  \item tránh tràn RAM --- vấn đề đã gặp trong dự án SVPWM khi đặt bảng snapshot sin/cos vào RAM (\texttt{log.md}).
-\end{itemize}
-
-\paragraph{b) Tra cứu $O(1)$ theo $m$.}
-Chỉ số LUT:
-\begin{equation}
-  i_m = \mathrm{round}(100\,m - 1), \qquad i_m \in [0, 99].
-  \label{eq:lut_index}
-\end{equation}
-Hàm \texttt{SOPWM\_GetAngles()} chọn bảng theo $N$ và sao chép $M$ góc --- \textbf{không} nội suy runtime, đảm bảo thời gian thực thi xác định.
-
-\paragraph{c) Bảng lịch DMA trong RAM GS.}
-Ngược với LUT, bảng $\texttt{sopwm\_sched}[3][2][100]$ --- nguồn dữ liệu trực tiếp cho DMA (mục~2) --- phải nằm trong RAM truy cập được bởi bộ điều khiển DMA:
-\begin{equation}
-  S_{\mathrm{sched}} = 3 \times 2 \times 100 \times 4 = \SI{2400}{byte},
-\end{equation}
-được đặt explicit bằng:
-\begin{lstlisting}[language=C]
-#pragma DATA_SECTION(sopwm_sched, "ramgs0")
-SOPWM_CycleCmp_t sopwm_sched[3][2][SOPWM_N_CARR];
-\end{lstlisting}
-Section \texttt{ramgs0} map vào \texttt{RAMGS0} (PAGE 1) theo file liên kết.
-
-\paragraph{d) Double buffering.}
-Hai bộ đệm cho phép vòng lặp chính xây dựng lịch mới (\texttt{BuildSchedule}) trong khi DMA đọc bộ \emph{active}, tránh race condition:
-\begin{equation}
-  \texttt{sopwm\_sched\_active} \in \{0,1\}, \qquad
-  \texttt{BuildSchedule} \rightarrow \texttt{sched}[\phi][\texttt{next}][k].
-\end{equation}
-Hoán đổi buffer tại ranh giới chu kỳ cơ bản trong \texttt{SOPWM\_schedISR()}.
-
-\subsection{Đánh giá trade-off}
-
-\begin{table}[htbp]
-  \centering
-  \caption{Phân bố bộ nhớ tóm tắt.}
-  \label{tab:mem_map}
-  \begin{tabular}{@{}llll@{}}
-    \toprule
-    Dữ liệu & Vùng & Kích thước & Ghi chú \\
-    \midrule
-    LUT góc SOPWM & FLASH \texttt{.const} & $\approx$\SI{10}{\kibi\byte} & 5 bảng, 100 mức $m$ \\
-    Bảng lịch CMP & RAMGS0 & \SI{2400}{byte} & DMA source \\
-    Mã \texttt{.text} & FLASH / RAMLS & biến thiên & ISR + BuildSchedule \\
-    Stack / \texttt{.bss} & RAMLS5 & biến thiên & biến toàn cục \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Việc \textbf{không} lưu toàn bộ $4M$ góc đã mở rộng trong LUT (chỉ lưu $M$ góc Q1) tiết kiệm thêm $\times 4$ dung lượng FLASH so với cách tra cứu trực tiếp --- đối xứng được tái tạo bằng phép toán cố định~\eqref{eq:quarter_expand}.
+% Van de 3 — tai lieu rieng: docs/van_de_3_phan_bo_bo_nho.tex
+\input{van_de_3_phan_bo_bo_nho.tex}
 
 %==============================================================================
 \section{Công thức tổng hợp và ví dụ số}
