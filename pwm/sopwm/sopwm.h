@@ -118,8 +118,11 @@ extern uint16_t sopwm_num_angles;
 
 #define SOPWM_N_CARR          100U     /* carrier cycles per fundamental (50 kHz/100 = 500 Hz) */
 #define SOPWM_CMP_OFF         0xFFFFU  /* disabled CMP value — never fires      */
-#define SOPWM_PHASE_B_OFFSET  33U      /* slot rotation for phase B (≈120°) */
-#define SOPWM_PHASE_C_OFFSET  67U      /* slot rotation for phase C (≈240°) */
+#define SOPWM_PHASE_B_OFFSET  67U      /* LUT slot rotation for B (lags A by 120°) */
+#define SOPWM_PHASE_C_OFFSET  33U      /* LUT slot rotation for C (lags A by 240°) */
+#define SOPWM_MID_SLOT_A      50U      /* 180° half-wave toggle on system grid     */
+#define SOPWM_MID_SLOT_B      83U      /* B 180° = system 300°                     */
+#define SOPWM_MID_SLOT_C      17U      /* C 180° = system 60°                      */
 
 /*
  * One carrier-cycle compare pair.  Packed into the DMA source table.

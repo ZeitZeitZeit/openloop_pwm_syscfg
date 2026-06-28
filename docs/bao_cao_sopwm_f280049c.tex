@@ -1,0 +1,427 @@
+% !TEX program = pdflatex
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese,english]{babel}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{mathtools}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{siunitx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc}
+
+\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  breaklines=true,
+  frame=single,
+  tabsize=2
+}
+
+\title{%
+  \textbf{Báo cáo triển khai điều chế đồng bộ SOPWM}\\[0.4em]
+  \large Trên vi điều khiển TI TMS320F280049C
+}
+\author{VietNH \quad|\quad Dự án \texttt{epwm\_svm}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Báo cáo trình bày quy trình triển khai phương pháp \emph{Selective Optimal Pulse Width Modulation} (SOPWM) --- một dạng điều chế xung đồng bộ (synchronous PWM) --- trên DSP C2000 TMS320F280049C. Ba thách thức kỹ thuật trung tâm được phân tích và giải quyết: (i)~giới hạn phần cứng ePWM chỉ có hai thanh ghi so sánh CMPA/CMPB trong khi cần tới $4M$ sự kiện chuyển mạch ($M=3\ldots7$, tức 12--28 điểm) trên mỗi chu kỳ cơ bản; (ii)~yêu cầu bắt buộc sử dụng DMA để cập nhật góc so sánh mỗi chu kỳ sóng mang với độ chính xác thời gian cao; (iii)~phân bố bộ nhớ FLASH/RAM do khối lượng lớn bảng tra cứu góc (LUT) và bảng lịch runtime. Các công thức toán học, kiến trúc phần mềm và tham số triển khai thực tế được mô tả đầy đủ.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+%==============================================================================
+\section{Giới thiệu}
+%==============================================================================
+
+\subsection{Bối cảnh: điều chế đồng bộ và SOPWM}
+
+Trong điều khiển biến tần ba pha, \textbf{điều chế đồng bộ} (synchronous PWM) là phương pháp trong đó số xung trong một chu kỳ sóng cơ bản $T_1 = 1/f_1$ được cố định (hoặc chọn theo quy tắc rõ ràng), và các instant chuyển mạch được xác định \emph{đồng bộ} với pha điện của điện áp tham chiếu. Khác với SVPWM hay carrier-based PWM bất đồng bộ, SOPWM tối ưu hóa trực tiếp các góc chuyển mạch $\alpha_k$ sao cho:
+\begin{itemize}[noitemsep]
+  \item loại bỏ các harmonic thấp tại bội số $N \pm 1$ của số xung $N$;
+  \item giữ biên độ điện áp cơ bản theo chỉ số điều chế $m$.
+\end{itemize}
+
+Với số xung lẻ $N \in \{7,9,11,13,15\}$, bài toán tối ưu chỉ cần giải trên \textbf{phần tư chu kỳ} ($0^\circ$--$90^\circ$) nhờ đối xứng lẻ:
+\begin{equation}
+  v(\theta) = -v(\theta + 180^\circ), \qquad
+  v(\theta) = v(-\theta).
+  \label{eq:odd_symmetry}
+\end{equation}
+Do đó chỉ cần lưu $M = \lfloor N/2 \rfloor$ góc cơ sở trên phần tư chu kỳ, với
+\begin{equation}
+  M = \frac{N-1}{2}.
+  \label{eq:M_def}
+\end{equation}
+
+\subsection{Nền tảng phần cứng}
+
+Vi điều khiển \textbf{TMS320F280049C} (họ F28004x) cung cấp:
+\begin{itemize}[noitemsep]
+  \item CPU C28x \SI{100}{\mega\hertz}, bộ nhớ FLASH on-chip, RAM LS/GS;
+  \item nhiều module ePWM độc lập, mỗi module có \textbf{hai} thanh ghi so sánh CMPA và CMPB;
+  \item bộ điều khiển DMA 6 kênh, có thể kích hoạt bởi sự kiện ePWM SOC.
+\end{itemize}
+
+Trong dự án \texttt{epwm\_svm}, ba pha được phát trên ePWM6 (pha A), ePWM5 (pha B), ePWM3 (pha C); ePWM1 đóng vai trò \emph{master timer} phát ngắt và tín hiệu SOC-A cho DMA. Tham số sóng mang:
+\begin{align}
+  f_{\mathrm{carr}} &= \SI{50}{\kilo\hertz}, &
+  \mathrm{TBPRD} &= 2000 \text{ counts}, \\
+  f_1 &= \frac{f_{\mathrm{carr}}}{N_{\mathrm{carr}}} = \frac{\SI{50}{\kilo\hertz}}{100} = \SI{500}{\hertz}, &
+  \Delta\theta_{\mathrm{slot}} &= \frac{360^\circ}{N_{\mathrm{carr}}} = 3{,}6^\circ.
+  \label{eq:timing}
+\end{align}
+
+%==============================================================================
+\section{Vấn đề 1: Giới hạn phần cứng --- hai CMP nhưng cần $4M$ sự kiện}
+%==============================================================================
+
+\subsection{Phát biểu bài toán}
+
+Mỗi module ePWM chỉ có \textbf{hai} ngưỡng so sánh (CMPA, CMPB) cho mỗi chu kỳ sóng mang. Tuy nhiên, sau khi mở rộng đối xứng từ $M$ góc cơ sở, mỗi pha cần tới
+\begin{equation}
+  N_{\mathrm{sw}} = 4M = 2(N-1)
+  \label{eq:4M}
+\end{equation}
+điểm chuyển mạch trong một chu kỳ cơ bản $360^\circ$. Bảng~\ref{tab:events} liệt kê quy mô sự kiện.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Số góc cơ sở $M$ và số sự kiện chuyển mạch $4M$ theo $N$.}
+  \label{tab:events}
+  \begin{tabular}{@{}ccccc@{}}
+    \toprule
+    $N$ & $M$ & $4M$ & Góc cơ sở (LUT) & Ví dụ $m=0{,}50$ \\
+    \midrule
+    7  & 3 & 12 & 3 & $\alpha_1,\alpha_2,\alpha_3$ \\
+    9  & 4 & 16 & 4 & \\
+    11 & 5 & 20 & 5 & \\
+    13 & 6 & 24 & 6 & \\
+    15 & 7 & 28 & 7 & \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Nếu gán trực tiếp mỗi sự kiện vào CMPA/CMPB trong ISR, CPU phải tính toán và ghi 12--28 cặp giá trị \emph{mỗi chu kỳ cơ bản}, đồng thời vẫn không thể phát quá \textbf{hai} chuyển mạch trên \textbf{một} chu kỳ sóng mang --- trong khi nhiều chu kỳ mang liên tiếp có thể chứa 0, 1 hoặc 2 sự kiện.
+
+\subsection{Nguyên lý giải pháp: bảng lịch theo chu kỳ mang}
+
+Thay vì ``một CMP cho một góc toàn cục'', hệ thống \textbf{phân bổ thời gian theo lưới sóng mang}. Chia chu kỳ cơ bản thành $N_{\mathrm{carr}} = 100$ \emph{khe} (slot), mỗi khe tương ứng một chu kỳ ePWM và góc quét
+\begin{equation}
+  \Delta\theta = \frac{360^\circ}{N_{\mathrm{carr}}} = 3{,}6^\circ.
+\end{equation}
+
+Với mỗi góc chuyển mạch toàn cục $\theta_g \in [0^\circ, 360^\circ)$:
+\begin{align}
+  k &= \left\lfloor \frac{\theta_g}{\Delta\theta} \right\rfloor, \qquad
+  \theta_{\mathrm{loc}} = \theta_g - k\,\Delta\theta, \label{eq:slot}\\
+  \mathrm{CMP} &= \mathrm{round}\!\left(
+    \frac{\theta_{\mathrm{loc}}}{\Delta\theta}\,\mathrm{TBPRD}
+  \right), \qquad \mathrm{CMP} < \mathrm{TBPRD}.
+  \label{eq:cmp_counts}
+\end{align}
+
+Mỗi phần tử bảng lịch lưu một cặp:
+\begin{equation}
+  \texttt{SOPWM\_CycleCmp\_t} = \{\mathrm{cmpa},\, \mathrm{cmpb}\},
+\end{equation}
+trong đó $\mathrm{cmpa} \le \mathrm{cmpb}$ khi cả hai đều hợp lệ. Giá trị đặc biệt $\texttt{SOPWM\_CMP\_OFF} = \texttt{0xFFFF}$ (lớn hơn TBPRD) báo hiệu ngưỡng \emph{vô hiệu} --- Action Qualifier không kích hoạt tại điểm đó.
+
+\subsection{Mở rộng quarter-wave từ LUT}
+
+Từ $M$ góc cơ sở $\{\alpha_1,\ldots,\alpha_M\}$ (độ, trong phần tư đầu), ta xây dựng $4M$ góc toàn chu kỳ:
+\begin{align}
+  \text{Q1:}\quad & \theta_i = \alpha_i, & i &= 1,\ldots,M, \nonumber\\
+  \text{Q2:}\quad & \theta_{M+i} = 180^\circ - \alpha_{M+1-i}, & & \nonumber\\
+  \text{Q3:}\quad & \theta_{2M+i} = 180^\circ + \alpha_i, & & \nonumber\\
+  \text{Q4:}\quad & \theta_{3M+i} = 360^\circ - \alpha_{M+1-i}. &
+  \label{eq:quarter_expand}
+\end{align}
+
+Đây chính là công thức được triển khai trong \texttt{SOPWM\_BuildSchedule()}.
+
+\subsection{Đối xứng nửa chu kỳ và ba pha}
+
+Để đảm bảo dòng trung tính và đóng chu kỳ sóng leg, hàm \texttt{sopwm\_halfwave\_closure()} ép một chuyển mạch tại khe $180^\circ$ của từng pha:
+\begin{equation}
+  k_{\mathrm{mid},A} = 50,\quad
+  k_{\mathrm{mid},B} = 83,\quad
+  k_{\mathrm{mid},C} = 17,
+\end{equation}
+tương ứng lệch pha $120^\circ$ và $240^\circ$ trên lưới 100 khe ($120^\circ/3{,}6^\circ = 33$ khe). Pha B/C được tạo bằng \textbf{xoay vòng} bảng pha A:
+\begin{equation}
+  \texttt{sched}[\phi][k] = \texttt{sched}[A]\bigl[(k + \Delta k_\phi) \bmod N_{\mathrm{carr}}\bigr],
+  \quad \Delta k_B = 67,\; \Delta k_C = 33.
+\end{equation}
+
+Như vậy, \textbf{hai thanh ghi CMP} vẫn đủ cho \emph{một chu kỳ mang}, còn toàn bộ $4M$ sự kiện được ``trải'' lên $N_{\mathrm{carr}}$ chu kỳ mang thông qua bảng lịch $\texttt{sopwm\_sched}[3][2][100]$.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    node distance=1.1cm and 1.4cm,
+    block/.style={rectangle, draw, rounded corners, minimum width=2.8cm, minimum height=0.9cm, align=center, font=\small},
+    arr/.style={-{Stealth[length=2.2mm]}, thick}
+  ]
+    \node[block] (lut) {LUT\\$M$ góc Q1};
+    \node[block, right=of lut] (exp) {Mở rộng\\$4M$ góc};
+    \node[block, right=of exp] (bin) {Gán khe\\Eq.~\eqref{eq:slot}--\eqref{eq:cmp_counts}};
+    \node[block, below=of bin] (buf) {Double buffer\\$\texttt{sopwm\_sched}$};
+    \node[block, left=of buf] (dma) {DMA $\rightarrow$\\CMPA/CMPB};
+    \node[block, left=of dma] (epwm) {ePWM6/5/3\\AQ + DB};
+
+    \draw[arr] (lut) -- (exp);
+    \draw[arr] (exp) -- (bin);
+    \draw[arr] (bin) -- (buf);
+    \draw[arr] (buf) -- (dma);
+    \draw[arr] (dma) -- (epwm);
+  \end{tikzpicture}
+  \caption{Luồng dữ liệu giải quyết giới hạn hai CMP: LUT $\rightarrow$ mở rộng $4M$ góc $\rightarrow$ bảng lịch theo khe $\rightarrow$ DMA nạp CMP.}
+  \label{fig:flow}
+\end{figure}
+
+%==============================================================================
+\section{Vấn đề 2: Tính cần thiết của DMA trong cập nhật góc}
+%==============================================================================
+
+Bảng lịch $\texttt{sopwm\_sched}$ giải quyết mâu thuẫn ``nhiều sự kiện -- hai CMP'', nhưng vẫn cần cơ chế nạp $600$ cặp giá trị CMP vào ba module ePWM mỗi chu kỳ cơ bản. Phần này phân tích vì sao CPU không đáp ứng được và vai trò bắt buộc của DMA.
+
+\subsection{Tại sao CPU không đủ}
+
+Mỗi chu kỳ sóng mang (\SI{20}{\micro\second} tại \SI{50}{\kilo\hertz}), ePWM cần một cặp giá trị CMPA/CMPB mới. Trong một chu kỳ cơ bản:
+\begin{equation}
+  N_{\mathrm{writes}} = N_{\mathrm{carr}} \times 3\,\text{pha} \times 2\,\text{reg} = 600 \text{ lần ghi 16-bit}.
+\end{equation}
+
+Nếu thực hiện trong ISR ePWM1 (\SI{50}{\kilo\hertz}):
+\begin{itemize}[noitemsep]
+  \item ISR phải ghi 6 thanh ghi so sánh (3 pha $\times$ 2 CMP) \emph{trước} khi counter vượt ngưỡng --- cực kỳ nhạy jitter;
+  \item thời gian ISR tăng tuyến tính theo số pha; dễ xung đột với vòng điều khiển, ADC, truyền thông;
+  \item shadow register chỉ an toàn khi ghi đúng thời điểm ZERO/COMPA --- DMA đồng bộ phần cứng đảm bảo hơn ghi CPU tùy ý.
+\end{itemize}
+
+\subsection{Cấu hình DMA trong dự án}
+
+Ba kênh DMA (CH0--CH2) cấu hình qua SysConfig với tham số chung:
+\begin{align}
+  \text{Burst size} &= 2 \quad \text{(CMPA + CMPB liên tiếp)}, \\
+  \text{Transfer size} &= N_{\mathrm{carr}} = 100, \\
+  \text{Src wrap size} &= 200 = 2 \times 100 \quad \text{(double buffer)}, \\
+  \text{Trigger} &= \texttt{DMA\_TRIGGER\_EPWM1SOCA @ TBCTR=ZERO}.
+\end{align}
+
+Đích DMA trỏ tới vùng shadow CMPA (offset \texttt{EPWM\_O\_CMPA + 1}) của ePWM6, ePWM5, ePWM3. Mỗi lần ZERO:
+\begin{enumerate}[noitemsep]
+  \item DMA burst: đọc $\{\mathrm{cmpa},\mathrm{cmpb}\}$ từ $\texttt{sopwm\_sched}[\phi][b][k]$;
+  \item ghi vào shadow CMPA/CMPB của pha $\phi$;
+  \item tăng chỉ số nguồn; sau 100 burst thì quay vòng (wrap) trong phạm vi 200 word.
+\end{enumerate}
+
+Công thức ánh xạ thời gian --- góc trên \emph{một} chu kỳ mang $k$:
+\begin{equation}
+  \theta_k = k \cdot \Delta\theta + \theta_{\mathrm{loc}}, \qquad
+  t_{\mathrm{cmp}} = \frac{\mathrm{CMP}}{\mathrm{TBPRD}}\,T_{\mathrm{carr}}.
+  \label{eq:time_angle}
+\end{equation}
+
+Action Qualifier cấu hình \texttt{TOGGLE} tại \texttt{TBCTR = CMPA/CMPB} (up-count), tạo xung SOPWM với dead-band \SI{480}{counts} ($\approx$\SI{2.4}{\micro\second}).
+
+\subsection{Đồng bộ DMA -- ISR -- vòng lặp chính}
+
+Kiến trúc thời gian thực ba tầng:
+
+\begin{enumerate}
+  \item \textbf{DMA (\SI{50}{\kilo\hertz}):} nạp CMP --- tầng \emph{hard real-time}, không tham gia CPU.
+  \item \textbf{ISR ePWM1 (\SI{50}{\kilo\hertz}):} \texttt{SOPWM\_schedISR()} đếm $k$, hoán đổi buffer tại $k=0$, báo \texttt{sopwm\_fund\_tick}; cập nhật con trỏ DMA khi rollover.
+  \item \textbf{Main loop (\SI{500}{\hertz}):} khi \texttt{sopwm\_fund\_tick}, gọi
+  \begin{verbatim}
+  SOPWM_BuildSchedule(sopwm_m_cmd, sopwm_N_cmd, SOPWM_TBPRD);
+  SOPWM_CommitSchedule();
+  \end{verbatim}
+  Tầng này có thể cập nhật $m$ từ vòng kín mà không ảnh hưởng jitter PWM.
+\end{enumerate}
+
+Quy tắc quan trọng: \textbf{cả ba kênh DMA dùng chung trigger EPWM1SOCA} để tránh race --- ISR chạy sau DMA burst, cập nhật \texttt{DMA\_configAddresses()} trước trigger tiếp theo (\SI{20}{\micro\second} sau).
+
+\subsection{Chỉ số điều chế và cập nhật góc}
+
+Chỉ số điều chế (open-loop hoặc closed-loop):
+\begin{equation}
+  m = \frac{\pi}{2U_{\mathrm{dc}}}\sqrt{U_\alpha^2 + U_\beta^2},
+  \qquad 0{,}01 \le m \le 1{,}00.
+  \label{eq:m_index}
+\end{equation}
+
+Mỗi chu kỳ cơ bản, $m$ mới $\Rightarrow$ tra LUT $\Rightarrow$ dựng lại toàn bộ bảng 100 khe $\times$ 3 pha. DMA đảm bảo \textbf{mỗi thay đổi góc} (dù nhỏ) được phản ánh đúng vào CMP \emph{đúng chu kỳ mang}, điều kiện cần của điều chế đồng bộ.
+
+%==============================================================================
+\section{Vấn đề 3: Phân bố bộ nhớ FLASH/RAM cho LUT góc}
+%==============================================================================
+
+Sau khi xác định kiến trúc DMA, bài toán tiếp theo là \emph{lưu trữ} dữ liệu góc và bảng lịch sao cho vừa đủ dung lượng on-chip, vừa đáp ứng yêu cầu truy cập của CPU (BuildSchedule) và DMA (đọc nguồn burst).
+
+\subsection{Quy mô dữ liệu LUT}
+
+Mỗi bảng LUT lưu $100$ mức chỉ số điều chế $m \in \{0{,}01, 0{,}02, \ldots, 1{,}00\}$ và $M$ góc (float 32-bit). Tổng dung lượng:
+\begin{equation}
+  S_{\mathrm{LUT}} = \sum_{N} \bigl(\texttt{SOPWM\_M\_COUNT} \times M \times 4\bigr)
+  = 100 \times 4 \times (3+4+5+6+7)
+  = \SI{10000}{byte} \approx \SI{9.8}{\kibi\byte}.
+  \label{eq:lut_size}
+\end{equation}
+
+Chi tiết từng bảng:
+\begin{table}[htbp]
+  \centering
+  \caption{Dung lượng các bảng \texttt{SOPWM\_LUT\_N*}.}
+  \label{tab:lut_mem}
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    Bảng & Kích thước & Số phần tử & Bytes \\
+    \midrule
+    \texttt{SOPWM\_LUT\_N7}  & $100 \times 3$ & 300  & 1200 \\
+    \texttt{SOPWM\_LUT\_N9}  & $100 \times 4$ & 400  & 1600 \\
+    \texttt{SOPWM\_LUT\_N11} & $100 \times 5$ & 500  & 2000 \\
+    \texttt{SOPWM\_LUT\_N13} & $100 \times 6$ & 600  & 2400 \\
+    \texttt{SOPWM\_LUT\_N15} & $100 \times 7$ & 700  & 2800 \\
+    \midrule
+    \textbf{Tổng} & & 2500 & \textbf{10000} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Chiến lược phân vùng bộ nhớ}
+
+\paragraph{a) LUT trong FLASH (\texttt{.const}).}
+Các mảng \texttt{const float SOPWM\_LUT\_N*} được liên kết vào section \texttt{.const} trên FLASH (\texttt{FLASH\_BANK0\_SEC4} trong \texttt{28004x\_generic\_flash\_lnk.cmd}). Đây là lựa chọn tự nhiên vì:
+\begin{itemize}[noitemsep]
+  \item dữ liệu \textbf{chỉ đọc}, không thay đổi khi vận hành;
+  \item giải phóng RAM LS/GS quý giá cho stack, biến điều khiển và bảng lịch DMA;
+  \item tránh tràn RAM --- vấn đề đã gặp trong dự án SVPWM khi đặt bảng snapshot sin/cos vào RAM (\texttt{log.md}).
+\end{itemize}
+
+\paragraph{b) Tra cứu $O(1)$ theo $m$.}
+Chỉ số LUT:
+\begin{equation}
+  i_m = \mathrm{round}(100\,m - 1), \qquad i_m \in [0, 99].
+  \label{eq:lut_index}
+\end{equation}
+Hàm \texttt{SOPWM\_GetAngles()} chọn bảng theo $N$ và sao chép $M$ góc --- \textbf{không} nội suy runtime, đảm bảo thời gian thực thi xác định.
+
+\paragraph{c) Bảng lịch DMA trong RAM GS.}
+Ngược với LUT, bảng $\texttt{sopwm\_sched}[3][2][100]$ --- nguồn dữ liệu trực tiếp cho DMA (mục~2) --- phải nằm trong RAM truy cập được bởi bộ điều khiển DMA:
+\begin{equation}
+  S_{\mathrm{sched}} = 3 \times 2 \times 100 \times 4 = \SI{2400}{byte},
+\end{equation}
+được đặt explicit bằng:
+\begin{lstlisting}[language=C]
+#pragma DATA_SECTION(sopwm_sched, "ramgs0")
+SOPWM_CycleCmp_t sopwm_sched[3][2][SOPWM_N_CARR];
+\end{lstlisting}
+Section \texttt{ramgs0} map vào \texttt{RAMGS0} (PAGE 1) theo file liên kết.
+
+\paragraph{d) Double buffering.}
+Hai bộ đệm cho phép vòng lặp chính xây dựng lịch mới (\texttt{BuildSchedule}) trong khi DMA đọc bộ \emph{active}, tránh race condition:
+\begin{equation}
+  \texttt{sopwm\_sched\_active} \in \{0,1\}, \qquad
+  \texttt{BuildSchedule} \rightarrow \texttt{sched}[\phi][\texttt{next}][k].
+\end{equation}
+Hoán đổi buffer tại ranh giới chu kỳ cơ bản trong \texttt{SOPWM\_schedISR()}.
+
+\subsection{Đánh giá trade-off}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Phân bố bộ nhớ tóm tắt.}
+  \label{tab:mem_map}
+  \begin{tabular}{@{}llll@{}}
+    \toprule
+    Dữ liệu & Vùng & Kích thước & Ghi chú \\
+    \midrule
+    LUT góc SOPWM & FLASH \texttt{.const} & $\approx$\SI{10}{\kibi\byte} & 5 bảng, 100 mức $m$ \\
+    Bảng lịch CMP & RAMGS0 & \SI{2400}{byte} & DMA source \\
+    Mã \texttt{.text} & FLASH / RAMLS & biến thiên & ISR + BuildSchedule \\
+    Stack / \texttt{.bss} & RAMLS5 & biến thiên & biến toàn cục \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Việc \textbf{không} lưu toàn bộ $4M$ góc đã mở rộng trong LUT (chỉ lưu $M$ góc Q1) tiết kiệm thêm $\times 4$ dung lượng FLASH so với cách tra cứu trực tiếp --- đối xứng được tái tạo bằng phép toán cố định~\eqref{eq:quarter_expand}.
+
+%==============================================================================
+\section{Công thức tổng hợp và ví dụ số}
+%==============================================================================
+
+\subsection{Ví dụ: $N=7$, $m=0{,}50$}
+
+Từ LUT: $M=3$, góc cơ sở (độ) $\alpha_1 \approx 66{,}45$, $\alpha_2 \approx 76{,}52$, $\alpha_3 \approx 85{,}21$. Mở rộng~\eqref{eq:quarter_expand} cho $12$ góc. Góc $\theta \approx 85{,}21^\circ$ rơi vào
+\[
+  k = \lfloor 85{,}21 / 3{,}6 \rfloor = 23, \quad
+  \theta_{\mathrm{loc}} = 85{,}21 - 23 \times 3{,}6 = 2{,}41^\circ,
+\]
+\[
+  \mathrm{CMP} = \mathrm{round}\!\left(\frac{2{,}41}{3{,}6} \times 2000\right) \approx 1339.
+\]
+Giá trị này khớp biến debug \texttt{dbg\_cmpa\_snapshot} $\approx 1339$ tại \texttt{sopwm\_cycle\_idx = 24} trong \texttt{main.c}.
+
+\subsection{Điều kiện tính đúng của SOPWM đồng bộ}
+
+Để waveform SOPWM hợp lệ cần đồng thời:
+\begin{align}
+  &\text{(i)}\quad \sum_k \text{số toggle trên leg} \equiv 0 \pmod 2 \quad \text{(đóng chu kỳ)}, \\
+  &\text{(ii)}\quad \text{toggle bắt buộc tại } 180^\circ \text{ mỗi pha}, \\
+  &\text{(iii)}\quad \text{CMPA/CMPB được nạp trước mỗi chu kỳ mang (DMA @ ZERO)}.
+\end{align}
+Hàm \texttt{sopwm\_halfwave\_closure()} xử lý (i)--(ii); DMA xử lý (iii).
+
+%==============================================================================
+\section{Kết luận}
+%==============================================================================
+
+Triển khai SOPWM trên TMS320F280049C đã giải quyết có hệ thống ba thách thức:
+
+\begin{enumerate}
+  \item \textbf{Giới hạn hai CMP:} chuyển từ ``một góc -- một CMP'' sang \textbf{bảng lịch theo chu kỳ mang} với tối đa hai sự kiện/khe, mở rộng $4M$ góc bằng đối xứng quarter-wave.
+  \item \textbf{DMA:} nạp 600 giá trị CMP/chu kỳ cơ bản với jitter cực thấp, tách tính toán SOPWM (\SI{500}{\hertz}) khỏi nạp phần cứng (\SI{50}{\kilo\hertz}).
+  \item \textbf{Bộ nhớ LUT:} lưu $M$ góc/$m$ trong FLASH (\SI{\sim 10}{\kibi\byte}), bảng runtime DMA trong RAMGS (\SI{2.4}{\kibi\byte}), double buffer tránh ghi/đọc đồng thời.
+\end{enumerate}
+
+Hướng mở rộng: nội suy LUT theo $m$, tích hợp vòng kín trực tiếp trong ISR thông qua CLA, hoặc mở rộng $N_{\mathrm{carr}}$ để giảm $\Delta\theta$ và tăng độ phân giải góc --- với chi phí RAM bảng lịch tăng tuyến tính.
+
+%==============================================================================
+\appendix
+\section{Tham chiếu mã nguồn}
+%==============================================================================
+
+\begin{itemize}
+  \item \texttt{pwm/sopwm/sopwm.c}, \texttt{sopwm.h} --- LUT, BuildSchedule, DMA table.
+  \item \texttt{main.c} --- khởi tạo DMA, ISR, vòng lặp cơ bản.
+  \item \texttt{epwm\_sync\_svm.syscfg} --- cấu hình ePWM/DMA.
+  \item \texttt{28004x\_generic\_flash\_lnk.cmd} --- map \texttt{.const}, \texttt{ramgs0}.
+\end{itemize}
+
+\begin{thebibliography}{9}
+\bibitem{holmes} D. G. Holmes, T. A. Lipo, \emph{Pulse Width Modulation for Power Converters}, Wiley, 2003.
+\bibitem{ti_epwm} Texas Instruments, \emph{TMS320F28004x Technical Reference Manual}, ePWM \& DMA chapters.
+\bibitem{ti_sopwm} B. Ozpineci, ``Selective Harmonic Elimination PWM'', TI Application Reports.
+\end{thebibliography}
+
+\end{document}

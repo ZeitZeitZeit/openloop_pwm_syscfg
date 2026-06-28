@@ -1,0 +1,58 @@
+\relax 
+\providecommand \babel@aux [2]{\global \let \babel@toc \@gobbletwo }
+\@nameuse{bbl@beforestart}
+\catcode `"\active 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\babel@aux{english}{}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Giới thiệu}{3}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Bối cảnh: điều chế đồng bộ và SOPWM}{3}{subsection.1.1}\protected@file@percent }
+\newlabel{eq:odd_symmetry}{{1}{3}{Bối cảnh: điều chế đồng bộ và SOPWM}{equation.1}{}}
+\newlabel{eq:M_def}{{2}{3}{Bối cảnh: điều chế đồng bộ và SOPWM}{equation.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}Nền tảng phần cứng}{3}{subsection.1.2}\protected@file@percent }
+\newlabel{eq:timing}{{4}{3}{Nền tảng phần cứng}{equation.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Vấn đề 1: Giới hạn phần cứng --- hai CMP nhưng cần $4M$ sự kiện}{3}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Phát biểu bài toán}{3}{subsection.2.1}\protected@file@percent }
+\newlabel{eq:4M}{{5}{3}{Phát biểu bài toán}{equation.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Số góc cơ sở $M$ và số sự kiện chuyển mạch $4M$ theo $N$.}}{4}{table.caption.2}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:events}{{1}{4}{Số góc cơ sở $M$ và số sự kiện chuyển mạch $4M$ theo $N$}{table.caption.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Nguyên lý giải pháp: bảng lịch theo chu kỳ mang}{4}{subsection.2.2}\protected@file@percent }
+\newlabel{eq:slot}{{7}{4}{Nguyên lý giải pháp: bảng lịch theo chu kỳ mang}{equation.7}{}}
+\newlabel{eq:cmp_counts}{{8}{4}{Nguyên lý giải pháp: bảng lịch theo chu kỳ mang}{equation.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Mở rộng quarter-wave từ LUT}{4}{subsection.2.3}\protected@file@percent }
+\newlabel{eq:quarter_expand}{{10}{4}{Mở rộng quarter-wave từ LUT}{equation.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Đối xứng nửa chu kỳ và ba pha}{4}{subsection.2.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Luồng dữ liệu giải quyết giới hạn hai CMP: LUT $\rightarrow $ mở rộng $4M$ góc $\rightarrow $ bảng lịch theo khe $\rightarrow $ DMA nạp CMP.}}{5}{figure.caption.3}\protected@file@percent }
+\newlabel{fig:flow}{{1}{5}{Luồng dữ liệu giải quyết giới hạn hai CMP: LUT $\rightarrow $ mở rộng $4M$ góc $\rightarrow $ bảng lịch theo khe $\rightarrow $ DMA nạp CMP}{figure.caption.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Vấn đề 2: Tính cần thiết của DMA trong cập nhật góc}{5}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Tại sao CPU không đủ}{5}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Cấu hình DMA trong dự án}{5}{subsection.3.2}\protected@file@percent }
+\newlabel{eq:time_angle}{{18}{6}{Cấu hình DMA trong dự án}{equation.18}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Đồng bộ DMA -- ISR -- vòng lặp chính}{6}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Chỉ số điều chế và cập nhật góc}{6}{subsection.3.4}\protected@file@percent }
+\newlabel{eq:m_index}{{19}{6}{Chỉ số điều chế và cập nhật góc}{equation.19}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Vấn đề 3: Phân bố bộ nhớ FLASH/RAM cho LUT góc}{6}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Quy mô dữ liệu LUT}{7}{subsection.4.1}\protected@file@percent }
+\newlabel{eq:lut_size}{{20}{7}{Quy mô dữ liệu LUT}{equation.20}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Dung lượng các bảng \texttt  {SOPWM\_LUT\_N*}.}}{7}{table.caption.4}\protected@file@percent }
+\newlabel{tab:lut_mem}{{2}{7}{Dung lượng các bảng \texttt {SOPWM\_LUT\_N*}}{table.caption.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Chiến lược phân vùng bộ nhớ}{7}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{a) LUT trong FLASH (\texttt  {.const}).}{7}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{b) Tra cứu $O(1)$ theo $m$.}{7}{section*.6}\protected@file@percent }
+\newlabel{eq:lut_index}{{21}{7}{b) Tra cứu $O(1)$ theo $m$}{equation.21}{}}
+\@writefile{toc}{\contentsline {paragraph}{c) Bảng lịch DMA trong RAM GS.}{7}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{d) Double buffering.}{8}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Đánh giá trade-off}{8}{subsection.4.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Phân bố bộ nhớ tóm tắt.}}{8}{table.caption.9}\protected@file@percent }
+\newlabel{tab:mem_map}{{3}{8}{Phân bố bộ nhớ tóm tắt}{table.caption.9}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Công thức tổng hợp và ví dụ số}{8}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Ví dụ: $N=7$, $m=0{,}50$}{8}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Điều kiện tính đúng của SOPWM đồng bộ}{8}{subsection.5.2}\protected@file@percent }
+\bibcite{holmes}{1}
+\bibcite{ti_epwm}{2}
+\bibcite{ti_sopwm}{3}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Kết luận}{9}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A}Tham chiếu mã nguồn}{9}{appendix.A}\protected@file@percent }
+\gdef \@abspage@last{9}

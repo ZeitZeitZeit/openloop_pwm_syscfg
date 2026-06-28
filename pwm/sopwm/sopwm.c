@@ -673,6 +673,12 @@ static const uint16_t SOPWM_PHASE_SLOT_OFFSET[3] = {
     SOPWM_PHASE_C_OFFSET
 };
 
+static const uint16_t SOPWM_PHASE_MID_SLOT[3] = {
+    SOPWM_MID_SLOT_A,
+    SOPWM_MID_SLOT_B,
+    SOPWM_MID_SLOT_C
+};
+
 /*
  * sopwm_copy_rotated_phase
  *
@@ -696,21 +702,18 @@ static void sopwm_copy_rotated_phase(
 }
 
 /*
- * sopwm_build_phase
+ * sopwm_bin_lut
  *
- * Populate one phase's schedule in the inactive buffer.
+ * Map quarter-wave LUT angles into carrier slots (no symmetry yet).
  */
-static void sopwm_build_phase(
+static void sopwm_bin_lut(
         const float      *global_deg,
         uint16_t          total,
         uint16_t          tbprd,
-        uint16_t          buf_idx,
-        uint16_t          ph,
-        float             phase_offset_deg)
+        SOPWM_CycleCmp_t *tbl)
 {
-    SOPWM_CycleCmp_t *tbl = sopwm_sched[ph][buf_idx];
-    uint16_t          i, slot, counts;
-    float             local_ang;
+    uint16_t i, slot, counts;
+    float    local_ang;
 
     for (i = 0U; i < SOPWM_N_CARR; i++) {
         tbl[i].cmpa = SOPWM_CMP_OFF;
@@ -737,41 +740,49 @@ static void sopwm_build_phase(
             }
         }
     }
+}
 
-    /* Enforce half-wave symmetry: force a toggle at exactly 180° (phase A).
-     * B/C inherit this event via slot rotation (+33 / +67 slots). */
-    float mid_deg = phase_offset_deg + 180.0f;
-    if (mid_deg >= 360.0f) mid_deg -= 360.0f;
-    uint16_t mid_slot = (uint16_t)(mid_deg / SOPWM_CYCLE_SPAN_DEG);
-    if (mid_slot >= SOPWM_N_CARR) mid_slot = SOPWM_N_CARR - 1U;
-    uint16_t mid_counts = 0U;
-    if (tbl[mid_slot].cmpa == SOPWM_CMP_OFF) {
-        tbl[mid_slot].cmpa = mid_counts;
-    } else if (tbl[mid_slot].cmpb == SOPWM_CMP_OFF) {
-        tbl[mid_slot].cmpb = mid_counts;
+/*
+ * sopwm_halfwave_closure
+ *
+ * Force a toggle at the phase's own 180° system slot, then close 360°=0°
+ * when the per-frame toggle count is odd.
+ */
+static void sopwm_halfwave_closure(
+        SOPWM_CycleCmp_t *tbl,
+        uint16_t          mid_slot,
+        uint16_t          tbprd)
+{
+    uint16_t i, n_toggles;
+
+    if (mid_slot >= SOPWM_N_CARR) {
+        mid_slot = SOPWM_N_CARR - 1U;
     }
 
-    {
-        uint16_t n_toggles = 0U;
+    if (tbl[mid_slot].cmpa == SOPWM_CMP_OFF) {
+        tbl[mid_slot].cmpa = 0U;
+    } else if (tbl[mid_slot].cmpb == SOPWM_CMP_OFF) {
+        tbl[mid_slot].cmpb = 0U;
+    }
 
-        for (i = 0U; i < SOPWM_N_CARR; i++) {
-            if (tbl[i].cmpa != SOPWM_CMP_OFF) {
-                n_toggles++;
-            }
-            if (tbl[i].cmpb != SOPWM_CMP_OFF) {
-                n_toggles++;
-            }
+    n_toggles = 0U;
+    for (i = 0U; i < SOPWM_N_CARR; i++) {
+        if (tbl[i].cmpa != SOPWM_CMP_OFF) {
+            n_toggles++;
         }
+        if (tbl[i].cmpb != SOPWM_CMP_OFF) {
+            n_toggles++;
+        }
+    }
 
-        if ((n_toggles & 1U) != 0U) {
-            if (tbl[0].cmpa == SOPWM_CMP_OFF) {
-                tbl[0].cmpa = 0U;
-            } else if (tbl[0].cmpa != 0U && tbl[0].cmpb == SOPWM_CMP_OFF) {
-                tbl[0].cmpb = tbl[0].cmpa;
-                tbl[0].cmpa = 0U;
-            } else if (tbl[SOPWM_N_CARR - 1U].cmpb == SOPWM_CMP_OFF) {
-                tbl[SOPWM_N_CARR - 1U].cmpb = tbprd - 1U;
-            }
+    if ((n_toggles & 1U) != 0U) {
+        if (tbl[0].cmpa == SOPWM_CMP_OFF) {
+            tbl[0].cmpa = 0U;
+        } else if (tbl[0].cmpa != 0U && tbl[0].cmpb == SOPWM_CMP_OFF) {
+            tbl[0].cmpb = tbl[0].cmpa;
+            tbl[0].cmpa = 0U;
+        } else if (tbl[SOPWM_N_CARR - 1U].cmpb == SOPWM_CMP_OFF) {
+            tbl[SOPWM_N_CARR - 1U].cmpb = tbprd - 1U;
         }
     }
 }
@@ -820,13 +831,18 @@ void SOPWM_BuildSchedule(float m, uint16_t N, uint16_t tbprd)
         all_angles[3U*n_base + i] = 360.0f
                                     - base_deg[n_base - 1U - i]; /* Q4 */
 
-    /* Phase A: LUT → slot table.  Phases B/C: rotated copies of A. */
-    sopwm_build_phase(all_angles, total, tbprd,
-                      sopwm_sched_next, 0U, 0.0f);
+    /* Phase A: LUT → slots.  B/C: rotated LUT copies.  Each leg then gets
+     * its own 180° toggle at the correct system slot (50 / 83 / 17). */
+    sopwm_bin_lut(all_angles, total, tbprd,
+                  sopwm_sched[0][sopwm_sched_next]);
     for (ph = 1U; ph < 3U; ph++) {
         sopwm_copy_rotated_phase(ph, 0U,
                                  SOPWM_PHASE_SLOT_OFFSET[ph],
                                  sopwm_sched_next);
+    }
+    for (ph = 0U; ph < 3U; ph++) {
+        sopwm_halfwave_closure(sopwm_sched[ph][sopwm_sched_next],
+                               SOPWM_PHASE_MID_SLOT[ph], tbprd);
     }
 }
 
