@@ -58,7 +58,7 @@ flowchart TB
     B --> NEXT
     D --> NEXT["góc tiếp theo"]
     NEXT --> LOOP
-    LOOP -- "hết góc" --> HW["Đối xứng nửa chu kỳ:<br/>mid_slot = (offset+180°)/7.2°<br/>ép counts ≈ TBPRD/2 vào cmpa/cmpb còn trống"]
+    LOOP -- "hết góc" --> HW["Đối xứng nửa chu kỳ:<br/>mid_slot = (offset+180°)/7.2°<br/>ép counts = 0 (local 0° = đúng 180° điện) vào cmpa/cmpb còn trống"]
     HW --> DONE["sopwm_sched[phase][next_buf][slot] đã sẵn sàng"]
 ```
 
@@ -72,7 +72,7 @@ flowchart LR
     --> COMMIT["CommitSchedule: đánh dấu 'sẵn sàng'"]
     --> SWAP["schedISR: hoán đổi active/next<br/>tại ranh giới chu kỳ (khe 50)"]
     --> DMARD["DMA đọc buffer ACTIVE<br/>mỗi khe nạp 1 cặp {cmpa, cmpb}"]
-    --> CMP["CMPA/CMPB của EPWM1/4/7<br/>-> Action Qualifier lật chân -> Dead-band -> GPIO"]
+    --> CMP["CMPA/CMPB của EPWM1/4/2<br/>-> Action Qualifier lật chân -> Dead-band -> GPIO"]
 ```
 
 ---

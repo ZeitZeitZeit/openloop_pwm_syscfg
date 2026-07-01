@@ -8,6 +8,7 @@
 "./main.obj"
 "./device/device.obj"
 "./device/f28004x_codestartbranch.obj"
+"./pwm/sopwm/enhanced_sopwm.obj"
 "./pwm/sopwm/sopwm.obj"
 "./pwm/svm/svm.obj"
 "../28004x_generic_ram_lnk.cmd"

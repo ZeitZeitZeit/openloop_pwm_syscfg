@@ -24,7 +24,7 @@ import numpy as np
 PI = np.pi
 
 # ── Config ────────────────────────────────────────────────────────────────────
-SOPWM_C   = Path(__file__).parent / "pwm" / "sopwm" / "sopwm.c"
+SOPWM_C   = Path(__file__).parent / "pwm" / "sopwm" / "enhanced_sopwm.c"
 F_FUND    = 1_000
 F_CARR    = 50_000
 N_CARR    = F_CARR // F_FUND          # 50 cycles per fundamental period

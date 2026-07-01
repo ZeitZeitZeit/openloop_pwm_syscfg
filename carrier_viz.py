@@ -30,10 +30,10 @@ carrier_phase = (t % T_CARR) / T_CARR
 carrier       = carrier_phase                        # sawtooth 0→1
 
 # ── M=3 base angles from SOPWM_LUT_N7, m=0.50 (degrees → radians) ─────────────
-M        = 3
+M        = 6
 N        = 2 * M + 1                       # pulse number = 7
 BASE_DEG = np.array([
-    66.4466338389, 76.5217501494, 85.2117684069
+    12.67, 15.19, 63.86, 70.67, 79.09, 86.59
 ])
 base_rad = np.deg2rad(BASE_DEG)          # α1, α2, α3  ∈ (0, π/2)
 
