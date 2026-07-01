@@ -118,8 +118,9 @@ extern uint16_t sopwm_num_angles;
 
 #define SOPWM_N_CARR          50U      /* carrier cycles per fundamental        */
 #define SOPWM_CMP_OFF         0xFFFFU  /* disabled CMP value — never fires      */
-#define SOPWM_PHASE_B_OFFSET  17U      /* cycle shift for phase B (≈120°)       */
-#define SOPWM_PHASE_C_OFFSET  33U      /* cycle shift for phase C (≈240°)       */
+#define SOPWM_MID_SLOT_A      25U      /* 180° half-wave toggle (0° + 180°)     */
+#define SOPWM_PHASE_B_OFFSET  33U      /* B[k]=A[(k+33)%50]  lags A by 120°    */
+#define SOPWM_PHASE_C_OFFSET  17U      /* C[k]=A[(k+17)%50]  lags A by 240°    */
 
 /*
  * One carrier-cycle compare pair.  Packed into the DMA source table.
@@ -137,6 +138,8 @@ typedef struct {
  *   buffer : 0 or 1 (double-buffer)
  *   cycle  : 0..SOPWM_N_CARR-1
  *
+ * Phase C may need EPWM dead-band RED polarity Active Low (invert HS) so the
+ * rotated waveform matches A+240 deg — see phase_pulse_sim.py / SysConfig myEPWM2.
  * DMA source address for phase A = &sopwm_sched[0][sopwm_sched_active][0]
  * Allocated in DMA-accessible RAM (see #pragma DATA_SECTION in sopwm.c).
  */

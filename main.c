@@ -62,14 +62,14 @@ volatile uint16_t sopwm_N_cmd = SOPWM_N_INIT;
 float sopwm_m_cmd = SOPWM_M_INIT;
 
 // Debug snapshots — verify DMA is writing the correct schedule values.
-// At m=0.50, N=7, span=7.2 deg/slot, TBPRD=2000:
-//   Phase A: slot 11 fires at 85.21 deg  → cmpa ≈ 1670  (read at cycle_idx==12)
-//   Phase B: slot  0 fires at  6.45 deg  → cmpa ≈ 1791  (read at cycle_idx==1)
-//   Phase C: slot 17 fires at 126.45 deg → cmpa ≈ 1124  (read at cycle_idx==18)
+// At m=0.50, N=7, span=7.2 deg/slot, TBPRD=2000 (sym A @25, B=rot+33, C=rot+17):
+//   Phase A: slot 11 → cmpa ≈ 1670  (cycle_idx==12)
+//   Phase B: slot 17 → cmpa = 0 (A slot-0 closure rotated)  (cycle_idx==18)
+//   Phase C: mid slot 8 @ 57.6° → cmpa = 0  (cycle_idx==9)
 volatile uint16_t dbg_cmpa_snapshot  = 0;  // PhA slot[11] CMPA
 volatile uint16_t dbg_cmpb_snapshot  = 0;  // PhA slot[11] CMPB
-volatile uint16_t dbg_phB_cmpa_slot0 = 0;  // PhB slot[ 0] CMPA, expect ~1791
-volatile uint16_t dbg_phC_cmpa_slot17= 0;  // PhC slot[17] CMPA, expect ~1124
+volatile uint16_t dbg_phB_cmpa_slot0 = 0;  // PhB slot[17] CMPA, expect 0
+volatile uint16_t dbg_phC_cmpa_slot17= 0;  // PhC slot[8] mid CMPA, expect 0
 volatile uint32_t dbg_isr_count      = 0;
 
 //
@@ -215,11 +215,11 @@ __interrupt void epwm1ISR(void)
         dbg_cmpa_snapshot  = EPWM_getCounterCompareValue(myEPWM1_BASE, EPWM_COUNTER_COMPARE_A);
         dbg_cmpb_snapshot  = EPWM_getCounterCompareValue(myEPWM1_BASE, EPWM_COUNTER_COMPARE_B);
     }
-    if (sopwm_cycle_idx == 1U)   // PhB slot[ 0]: expect cmpa≈1791
+    if (sopwm_cycle_idx == 18U)  // PhB slot[17]: expect cmpa=0 (A closure rotated)
     {
         dbg_phB_cmpa_slot0  = EPWM_getCounterCompareValue(myEPWM4_BASE, EPWM_COUNTER_COMPARE_A);
     }
-    if (sopwm_cycle_idx == 18U)  // PhC slot[17]: expect cmpa≈1124
+    if (sopwm_cycle_idx == 9U)   // PhC slot[8] mid: expect cmpa=0
     {
         dbg_phC_cmpa_slot17 = EPWM_getCounterCompareValue(myEPWM2_BASE, EPWM_COUNTER_COMPARE_A);
     }
