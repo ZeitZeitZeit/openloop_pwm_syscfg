@@ -5,6 +5,7 @@
  */
 
 #include "sopwm.h"
+#include "driverlib.h"
 #include <math.h>
 
 const float SOPWM_LUT_N7[SOPWM_M_COUNT][3] = {
@@ -650,7 +651,13 @@ void SOPWM_openLoopRun(float *angles, uint16_t *num_angles)
 /* Schedule tables in DMA-accessible GSRAM.
  * The linker must have a "ramgs0" section mapped to GS0 (or any GS RAM). */
 #pragma DATA_SECTION(sopwm_sched, "ramgs0")
-SOPWM_CycleCmp_t sopwm_sched[3][2][SOPWM_N_CARR];
+SOPWM_CycleCmp_t sopwm_sched[3][2][SOPWM_N_CARR_MAX];
+
+float    sopwm_f_fund_hz       = 1000.0f;
+uint16_t sopwm_n_carr          = SOPWM_N_CARR_DEFAULT;
+uint16_t sopwm_mid_slot_a      = SOPWM_N_CARR_DEFAULT / 2U;
+uint16_t sopwm_phase_b_offset  = 33U;
+uint16_t sopwm_phase_c_offset  = 17U;
 
 volatile uint16_t sopwm_sched_active = 0U;  /* buffer index in use by DMA   */
 volatile uint16_t sopwm_fund_tick    = 0U;  /* flag: new fundamental started */
@@ -664,14 +671,61 @@ static volatile uint16_t sopwm_swap_pending = 0U;
 uint16_t                 sopwm_cycle_idx    = 0U;
 static uint16_t          sopwm_sched_next   = 1U;
 
-/* 7.2 degrees per carrier cycle at 50 cycles/period */
-#define SOPWM_CYCLE_SPAN_DEG  (360.0f / (float)SOPWM_N_CARR)
+static float sopwm_cycle_span_deg = 360.0f / (float)SOPWM_N_CARR_DEFAULT;
 
-static const uint16_t SOPWM_PHASE_SLOT_OFFSET[3] = {
-    0U,
-    SOPWM_PHASE_B_OFFSET,
-    SOPWM_PHASE_C_OFFSET
-};
+uint16_t SOPWM_SetFundamentalHz(float f_fund)
+{
+    uint16_t n_new;
+    uint16_t n_min;
+    uint16_t n_max;
+    float    span_deg;
+    uint16_t changed;
+
+    if (f_fund < SOPWM_F_FUND_MIN_HZ) {
+        f_fund = SOPWM_F_FUND_MIN_HZ;
+    } else if (f_fund > SOPWM_F_FUND_MAX_HZ) {
+        f_fund = SOPWM_F_FUND_MAX_HZ;
+    }
+
+    n_min = (uint16_t)(SOPWM_F_CARR_HZ / SOPWM_F_FUND_MAX_HZ + 0.5f);
+    n_max = (uint16_t)(SOPWM_F_CARR_HZ / SOPWM_F_FUND_MIN_HZ + 0.5f);
+    n_new = (uint16_t)(SOPWM_F_CARR_HZ / f_fund + 0.5f);
+    if (n_new < n_min) {
+        n_new = n_min;
+    } else if (n_new > n_max) {
+        n_new = n_max;
+    }
+
+    changed = (n_new != sopwm_n_carr) ? 1U : 0U;
+
+    sopwm_f_fund_hz      = f_fund;
+    sopwm_n_carr         = n_new;
+    span_deg             = 360.0f / (float)n_new;
+    sopwm_cycle_span_deg = span_deg;
+    sopwm_mid_slot_a     = n_new / 2U;
+    /* B[k]=A[(k+off_b)%N] lags A by 120°; C lags by 240° (integer round) */
+    sopwm_phase_b_offset = (uint16_t)(((uint32_t)n_new * 2U) + 1U) / 3U;
+    sopwm_phase_c_offset = (uint16_t)(((uint32_t)n_new) + 1U) / 3U;
+    sopwm_cycle_idx      = 0U;
+
+    return changed;
+}
+
+void SOPWM_ReconfigDma(uint32_t dma0Base, uint32_t dma1Base, uint32_t dma2Base)
+{
+    const uint32_t bases[3] = { dma0Base, dma1Base, dma2Base };
+    uint16_t       i;
+    uint32_t       wrap_bursts;
+
+    /* Wrap counts bursts (not 16-bit words). Two fundamentals per wrap. */
+    wrap_bursts = (uint32_t)sopwm_n_carr * 2U;
+
+    for (i = 0U; i < 3U; i++) {
+        DMA_configTransfer(bases[i], (uint32_t)sopwm_n_carr, 1, -2);
+        /* Match SysConfig/board.c: src wrap step 0, dest wrap disabled */
+        DMA_configWrap(bases[i], wrap_bursts, 0, 65535U, 0);
+    }
+}
 
 /*
  * sopwm_bin_lut
@@ -687,17 +741,17 @@ static void sopwm_bin_lut(
     uint16_t i, slot, counts;
     float    local_ang;
 
-    for (i = 0U; i < SOPWM_N_CARR; i++) {
+    for (i = 0U; i < sopwm_n_carr; i++) {
         tbl[i].cmpa = SOPWM_CMP_OFF;
         tbl[i].cmpb = SOPWM_CMP_OFF;
     }
 
     for (i = 0U; i < total; i++) {
-        slot = (uint16_t)(global_deg[i] / SOPWM_CYCLE_SPAN_DEG);
-        if (slot >= SOPWM_N_CARR) slot = SOPWM_N_CARR - 1U;
+        slot = (uint16_t)(global_deg[i] / sopwm_cycle_span_deg);
+        if (slot >= sopwm_n_carr) slot = sopwm_n_carr - 1U;
 
-        local_ang = global_deg[i] - (float)slot * SOPWM_CYCLE_SPAN_DEG;
-        counts    = (uint16_t)((local_ang / SOPWM_CYCLE_SPAN_DEG)
+        local_ang = global_deg[i] - (float)slot * sopwm_cycle_span_deg;
+        counts    = (uint16_t)((local_ang / sopwm_cycle_span_deg)
                                * (float)tbprd + 0.5f);
         if (counts >= tbprd) counts = tbprd - 1U;
 
@@ -727,8 +781,8 @@ static void sopwm_frame_closure(
 {
     uint16_t i, n_toggles;
 
-    if (mid_slot >= SOPWM_N_CARR) {
-        mid_slot = SOPWM_N_CARR - 1U;
+    if (mid_slot >= sopwm_n_carr) {
+        mid_slot = sopwm_n_carr - 1U;
     }
 
     if (tbl[mid_slot].cmpa == SOPWM_CMP_OFF) {
@@ -738,7 +792,7 @@ static void sopwm_frame_closure(
     }
 
     n_toggles = 0U;
-    for (i = 0U; i < SOPWM_N_CARR; i++) {
+    for (i = 0U; i < sopwm_n_carr; i++) {
         if (tbl[i].cmpa != SOPWM_CMP_OFF) {
             n_toggles++;
         }
@@ -753,8 +807,8 @@ static void sopwm_frame_closure(
         } else if (tbl[0].cmpa != 0U && tbl[0].cmpb == SOPWM_CMP_OFF) {
             tbl[0].cmpb = tbl[0].cmpa;
             tbl[0].cmpa = 0U;
-        } else if (tbl[SOPWM_N_CARR - 1U].cmpb == SOPWM_CMP_OFF) {
-            tbl[SOPWM_N_CARR - 1U].cmpb = tbprd - 1U;
+        } else if (tbl[sopwm_n_carr - 1U].cmpb == SOPWM_CMP_OFF) {
+            tbl[sopwm_n_carr - 1U].cmpb = tbprd - 1U;
         }
     }
 }
@@ -774,8 +828,8 @@ static void sopwm_copy_rotated_phase(
     SOPWM_CycleCmp_t       *dst = sopwm_sched[dst_ph][buf_idx];
     uint16_t                k;
 
-    for (k = 0U; k < SOPWM_N_CARR; k++) {
-        dst[k] = src[(k + slot_offset) % SOPWM_N_CARR];
+    for (k = 0U; k < sopwm_n_carr; k++) {
+        dst[k] = src[(k + slot_offset) % sopwm_n_carr];
     }
 }
 
@@ -800,7 +854,7 @@ void SOPWM_BuildSchedule(float m, uint16_t N, uint16_t tbprd)
 {
     float    base_deg[7];
     float    all_angles[28];   /* 4 * 7 max */
-    uint16_t n_base, total, ph, i;
+    uint16_t n_base, total, i;
 
     /* Fetch N base angles (degrees, Q1 only) from LUT */
     n_base = SOPWM_GetAngles(m, N, base_deg);
@@ -828,12 +882,9 @@ void SOPWM_BuildSchedule(float m, uint16_t N, uint16_t tbprd)
     sopwm_bin_lut(all_angles, total, tbprd,
                   sopwm_sched[0][sopwm_sched_next]);
     sopwm_frame_closure(sopwm_sched[0][sopwm_sched_next],
-                        SOPWM_MID_SLOT_A, tbprd);
-    for (ph = 1U; ph < 3U; ph++) {
-        sopwm_copy_rotated_phase(ph, 0U,
-                                 SOPWM_PHASE_SLOT_OFFSET[ph],
-                                 sopwm_sched_next);
-    }
+                        sopwm_mid_slot_a, tbprd);
+    sopwm_copy_rotated_phase(1U, 0U, sopwm_phase_b_offset, sopwm_sched_next);
+    sopwm_copy_rotated_phase(2U, 0U, sopwm_phase_c_offset, sopwm_sched_next);
 }
 
 void SOPWM_CommitSchedule(void)
@@ -847,7 +898,7 @@ void SOPWM_schedISR(void)
     /* Advance the carrier-cycle counter */
     sopwm_cycle_idx++;
 
-    if (sopwm_cycle_idx >= SOPWM_N_CARR) {
+    if (sopwm_cycle_idx >= sopwm_n_carr) {
         sopwm_cycle_idx = 0U;
 
         /* If main loop has committed a new schedule, swap the buffers now.

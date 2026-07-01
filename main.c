@@ -61,6 +61,11 @@ volatile uint16_t sopwm_N_cmd = SOPWM_N_INIT;
 // Modulation index command — write from debugger or closed-loop controller
 float sopwm_m_cmd = SOPWM_M_INIT;
 
+// Fundamental frequency command [400, 1000] Hz — write from debugger or host
+float sopwm_f_fund_cmd = 1000.0f;
+static float sopwm_f_fund_applied = -1.0f;
+static uint16_t sopwm_N_applied = SOPWM_N_INIT;
+
 // Debug snapshots — verify DMA is writing the correct schedule values.
 // At m=0.50, N=7, span=7.2 deg/slot, TBPRD=2000 (sym A @25, B=rot+33, C=rot+17):
 //   Phase A: slot 11 → cmpa ≈ 1670  (cycle_idx==12)
@@ -76,6 +81,35 @@ volatile uint32_t dbg_isr_count      = 0;
 // Function Prototypes
 //
 __interrupt void epwm1ISR(void);
+
+static void sopwm_repoint_dma(void)
+{
+    DMA_configAddresses(myDMA0_BASE,
+                        (const void *)(myEPWM1_BASE + EPWM_O_CMPA + 1U),
+                        (const void *)&sopwm_sched[0][sopwm_sched_active][0]);
+    DMA_configAddresses(myDMA1_BASE,
+                        (const void *)(myEPWM4_BASE + EPWM_O_CMPA + 1U),
+                        (const void *)&sopwm_sched[1][sopwm_sched_active][0]);
+    DMA_configAddresses(myDMA2_BASE,
+                        (const void *)(myEPWM2_BASE + EPWM_O_CMPA + 1U),
+                        (const void *)&sopwm_sched[2][sopwm_sched_active][0]);
+}
+
+static void sopwm_apply_timing_change(void)
+{
+    DMA_stopChannel(myDMA0_BASE);
+    DMA_stopChannel(myDMA1_BASE);
+    DMA_stopChannel(myDMA2_BASE);
+
+    SOPWM_SetFundamentalHz(sopwm_f_fund_cmd);
+    SOPWM_ReconfigDma(myDMA0_BASE, myDMA1_BASE, myDMA2_BASE);
+    SOPWM_InitSchedule(sopwm_m_cmd, sopwm_N_cmd, SOPWM_TBPRD);
+    sopwm_repoint_dma();
+
+    DMA_startChannel(myDMA0_BASE);
+    DMA_startChannel(myDMA1_BASE);
+    DMA_startChannel(myDMA2_BASE);
+}
 
 //
 // Main
@@ -127,6 +161,9 @@ void main(void)
     // Pre-build BOTH double-buffers BEFORE starting DMA so data is valid
     // from the very first SOC-A trigger.
     //
+    SOPWM_SetFundamentalHz(sopwm_f_fund_cmd);
+    sopwm_f_fund_applied = sopwm_f_fund_cmd;
+    sopwm_N_applied      = sopwm_N_cmd;
     SOPWM_InitSchedule(SOPWM_M_INIT, sopwm_N_cmd, SOPWM_TBPRD);
 
     // Set DMA source addresses to the populated schedule table.
@@ -139,6 +176,8 @@ void main(void)
     DMA_configAddresses(myDMA2_BASE,
                         (const void *)(myEPWM2_BASE + EPWM_O_CMPA + 1U),
                         (const void *)&sopwm_sched[2][0][0]);
+
+    SOPWM_ReconfigDma(myDMA0_BASE, myDMA1_BASE, myDMA2_BASE);
 
     // Start all three DMA channels — they will auto-trigger on ePWM ZERO.
     DMA_startChannel(myDMA0_BASE);
@@ -163,15 +202,23 @@ void main(void)
 
     //
     // IDLE loop.
-    // Rebuild the SOPWM schedule once per fundamental cycle (every 1 ms at
-    // 1 kHz fundamental).  SOPWM_schedISR() sets sopwm_fund_tick at the
-    // carrier-cycle rollover so this runs at exactly the right rate.
+    // Rebuild the SOPWM schedule once per fundamental cycle.
+    // SOPWM_schedISR() sets sopwm_fund_tick at the carrier-cycle rollover.
     //
     while(1)
     {
         if (sopwm_fund_tick)
         {
             sopwm_fund_tick = 0U;
+
+            if (sopwm_f_fund_cmd != sopwm_f_fund_applied) {
+                sopwm_f_fund_applied = sopwm_f_fund_cmd;
+                sopwm_N_applied      = sopwm_N_cmd;
+                sopwm_apply_timing_change();
+            } else if (sopwm_N_cmd != sopwm_N_applied) {
+                sopwm_N_applied = sopwm_N_cmd;
+                SOPWM_InitSchedule(sopwm_m_cmd, sopwm_N_cmd, SOPWM_TBPRD);
+            }
 
             // --- Update m here from closed-loop controller if needed ---
             // sopwm_m_cmd = compute_m(Ualpha, Ubeta, Udc);
@@ -225,22 +272,10 @@ __interrupt void epwm1ISR(void)
     }
 
     // After a fundamental rollover, re-point DMA SRC to the newly activated
-    // buffer so the next 50-cycle run reads the freshly built schedule.
+    // buffer so the next sopwm_n_carr-cycle run reads the freshly built schedule.
     if (sopwm_fund_tick)
     {
-        // Re-point DMA source to the newly active buffer.
-        // All 3 channels trigger from EPWM1SOCA (same event as this ISR),
-        // so the next trigger won't fire until the next ZERO (20µs away).
-        // DMA_configAddresses updates both srcBeg and srcAddr.
-        DMA_configAddresses(myDMA0_BASE,
-                            (const void *)(myEPWM1_BASE + EPWM_O_CMPA + 1U),
-                            (const void *)&sopwm_sched[0][sopwm_sched_active][0]);
-        DMA_configAddresses(myDMA1_BASE,
-                            (const void *)(myEPWM4_BASE + EPWM_O_CMPA + 1U),
-                            (const void *)&sopwm_sched[1][sopwm_sched_active][0]);
-        DMA_configAddresses(myDMA2_BASE,
-                            (const void *)(myEPWM2_BASE + EPWM_O_CMPA + 1U),
-                            (const void *)&sopwm_sched[2][sopwm_sched_active][0]);
+        sopwm_repoint_dma();
     }
 
     //

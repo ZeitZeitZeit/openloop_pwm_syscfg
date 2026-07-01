@@ -116,11 +116,12 @@ extern uint16_t sopwm_num_angles;
 // DMA-Driven Schedule Table API
 // ============================================================================
 
-#define SOPWM_N_CARR          50U      /* carrier cycles per fundamental        */
+#define SOPWM_F_CARR_HZ       50000.0f /* fixed carrier (100 MHz / TBPRD 2000)  */
+#define SOPWM_F_FUND_MIN_HZ   400.0f   /* min fundamental — n_carr = 125        */
+#define SOPWM_F_FUND_MAX_HZ   1000.0f  /* max fundamental — n_carr = 50         */
+#define SOPWM_N_CARR_MAX      125U     /* ceil(F_carr / F_fund_min)             */
+#define SOPWM_N_CARR_DEFAULT  50U      /* F_fund = 1000 Hz                      */
 #define SOPWM_CMP_OFF         0xFFFFU  /* disabled CMP value — never fires      */
-#define SOPWM_MID_SLOT_A      25U      /* 180° half-wave toggle (0° + 180°)     */
-#define SOPWM_PHASE_B_OFFSET  33U      /* B[k]=A[(k+33)%50]  lags A by 120°    */
-#define SOPWM_PHASE_C_OFFSET  17U      /* C[k]=A[(k+17)%50]  lags A by 240°    */
 
 /*
  * One carrier-cycle compare pair.  Packed into the DMA source table.
@@ -136,14 +137,21 @@ typedef struct {
  * Double-buffered schedule tables — [phase][buffer][cycle]
  *   phase  : 0=A (ePWM1), 1=B (ePWM4), 2=C (ePWM2)
  *   buffer : 0 or 1 (double-buffer)
- *   cycle  : 0..SOPWM_N_CARR-1
+ *   cycle  : 0..sopwm_n_carr-1 (max SOPWM_N_CARR_MAX)
  *
  * Phase C may need EPWM dead-band RED polarity Active Low (invert HS) so the
  * rotated waveform matches A+240 deg — see phase_pulse_sim.py / SysConfig myEPWM2.
  * DMA source address for phase A = &sopwm_sched[0][sopwm_sched_active][0]
  * Allocated in DMA-accessible RAM (see #pragma DATA_SECTION in sopwm.c).
  */
-extern SOPWM_CycleCmp_t  sopwm_sched[3][2][SOPWM_N_CARR];
+extern SOPWM_CycleCmp_t  sopwm_sched[3][2][SOPWM_N_CARR_MAX];
+
+/* Runtime timing — derived from sopwm_f_fund_hz by SOPWM_SetFundamentalHz() */
+extern float             sopwm_f_fund_hz;
+extern uint16_t          sopwm_n_carr;
+extern uint16_t          sopwm_mid_slot_a;
+extern uint16_t          sopwm_phase_b_offset;
+extern uint16_t          sopwm_phase_c_offset;
 
 /* Buffer index currently being consumed by DMA (0 or 1) */
 extern volatile uint16_t sopwm_sched_active;
@@ -158,7 +166,27 @@ extern volatile uint16_t sopwm_fund_tick;
 extern volatile uint16_t sopwm_init_done;   /* expect 1 after init           */
 extern volatile uint16_t sopwm_lut_n_base;  /* expect 3 for N=7              */
 extern volatile uint16_t sopwm_build_count; /* expect 2 after InitSchedule   */
-extern          uint16_t sopwm_cycle_idx;   /* current carrier cycle 0..49   */
+extern          uint16_t sopwm_cycle_idx;   /* current carrier cycle 0..n-1  */
+
+/*
+ * SOPWM_SetFundamentalHz
+ *
+ * Map one command frequency to carrier slots and 120°/240° rotation offsets.
+ * Clamps f_fund to [400, 1000] Hz; n_carr = round(F_carr / f_fund).
+ * Resets sopwm_cycle_idx.  Call SOPWM_ReconfigDma() afterward if n_carr changed.
+ * Returns 1 if n_carr changed, 0 if unchanged.
+ */
+uint16_t SOPWM_SetFundamentalHz(float f_fund);
+
+/*
+ * SOPWM_ReconfigDma
+ *
+ * Set DMA transferSize = sopwm_n_carr bursts/slot and
+ * srcWrapSize = 2 * sopwm_n_carr bursts (matches SysConfig layout).
+ * Does not stop/start channels — caller must stop DMA before changing
+ * timing at runtime, then repoint addresses and restart.
+ */
+void SOPWM_ReconfigDma(uint32_t dma0Base, uint32_t dma1Base, uint32_t dma2Base);
 
 /*
  * SOPWM_InitSchedule
@@ -178,7 +206,7 @@ void SOPWM_InitSchedule(float m, uint16_t N, uint16_t tbprd);
 /*
  * SOPWM_BuildSchedule
  *
- * Compute the 50-slot CMPA/CMPB schedule for all three phases from the
+ * Compute the sopwm_n_carr-slot CMPA/CMPB schedule for all three phases from the
  * current modulation index and pulse number.  Writes into the INACTIVE
  * buffer.  Call from the main loop whenever sopwm_fund_tick is set.
  * Follow with SOPWM_CommitSchedule() to arm the new buffer for DMA swap.
