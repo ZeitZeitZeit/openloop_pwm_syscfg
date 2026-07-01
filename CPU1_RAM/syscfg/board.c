@@ -243,12 +243,6 @@ void EPWM_init(){
     EPWM_setFallingEdgeDelayCount(myEPWM4_BASE, 240);	
     EPWM_setDeadBandControlShadowLoadMode(myEPWM4_BASE, EPWM_DB_LOAD_ON_CNTR_ZERO);	
     EPWM_disableDeadBandControlShadowLoadMode(myEPWM4_BASE);	
-    EPWM_enableInterrupt(myEPWM4_BASE);	
-    EPWM_setInterruptSource(myEPWM4_BASE, EPWM_INT_TBCTR_ZERO);	
-    EPWM_setInterruptEventCount(myEPWM4_BASE, 1);	
-    EPWM_enableADCTrigger(myEPWM4_BASE, EPWM_SOC_A);	
-    EPWM_setADCTriggerSource(myEPWM4_BASE, EPWM_SOC_A, EPWM_SOC_TBCTR_ZERO);	
-    EPWM_setADCTriggerEventPrescale(myEPWM4_BASE, EPWM_SOC_A, 1);	
     EPWM_setClockPrescaler(myEPWM2_BASE, EPWM_CLOCK_DIVIDER_1, EPWM_HSCLOCK_DIVIDER_1);	
     EPWM_setTimeBasePeriod(myEPWM2_BASE, 1999);	
     EPWM_setTimeBaseCounter(myEPWM2_BASE, 0);	
@@ -274,7 +268,7 @@ void EPWM_init(){
     EPWM_setActionQualifierAction(myEPWM2_BASE, EPWM_AQ_OUTPUT_B, EPWM_AQ_OUTPUT_NO_CHANGE, EPWM_AQ_OUTPUT_ON_TIMEBASE_DOWN_CMPA);	
     EPWM_setActionQualifierAction(myEPWM2_BASE, EPWM_AQ_OUTPUT_B, EPWM_AQ_OUTPUT_TOGGLE, EPWM_AQ_OUTPUT_ON_TIMEBASE_UP_CMPB);	
     EPWM_setActionQualifierAction(myEPWM2_BASE, EPWM_AQ_OUTPUT_B, EPWM_AQ_OUTPUT_NO_CHANGE, EPWM_AQ_OUTPUT_ON_TIMEBASE_DOWN_CMPB);	
-    EPWM_setDeadBandDelayPolarity(myEPWM2_BASE, EPWM_DB_FED, EPWM_DB_POLARITY_ACTIVE_LOW);	
+    EPWM_setDeadBandDelayPolarity(myEPWM2_BASE, EPWM_DB_RED, EPWM_DB_POLARITY_ACTIVE_LOW);	
     EPWM_setDeadBandDelayMode(myEPWM2_BASE, EPWM_DB_RED, true);	
     EPWM_setRisingEdgeDelayCountShadowLoadMode(myEPWM2_BASE, EPWM_RED_LOAD_ON_CNTR_ZERO);	
     EPWM_disableRisingEdgeDelayCountShadowLoadMode(myEPWM2_BASE);	
@@ -285,12 +279,6 @@ void EPWM_init(){
     EPWM_setFallingEdgeDelayCount(myEPWM2_BASE, 240);	
     EPWM_setDeadBandControlShadowLoadMode(myEPWM2_BASE, EPWM_DB_LOAD_ON_CNTR_ZERO);	
     EPWM_disableDeadBandControlShadowLoadMode(myEPWM2_BASE);	
-    EPWM_enableInterrupt(myEPWM2_BASE);	
-    EPWM_setInterruptSource(myEPWM2_BASE, EPWM_INT_TBCTR_ZERO);	
-    EPWM_setInterruptEventCount(myEPWM2_BASE, 1);	
-    EPWM_enableADCTrigger(myEPWM2_BASE, EPWM_SOC_A);	
-    EPWM_setADCTriggerSource(myEPWM2_BASE, EPWM_SOC_A, EPWM_SOC_TBCTR_ZERO);	
-    EPWM_setADCTriggerEventPrescale(myEPWM2_BASE, EPWM_SOC_A, 1);	
 }
 
 //*****************************************************************************
