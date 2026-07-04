@@ -52,7 +52,7 @@
 //   SOPWM_M_INIT: starting modulation index (main loop updates each fundamental)
 // ---------------------------------------------------------------------------
 #define SOPWM_TBPRD    2000U
-#define SOPWM_N_INIT   7U
+#define SOPWM_N_INIT   15U
 #define SOPWM_M_INIT   0.50f
 
 // Runtime pulse number — write 7, 9, 11, 13, or 15 from CCS debugger to change live
@@ -62,7 +62,7 @@ volatile uint16_t sopwm_N_cmd = SOPWM_N_INIT;
 float sopwm_m_cmd = SOPWM_M_INIT;
 
 // Fundamental frequency command [400, 1000] Hz — write from debugger or host
-float sopwm_f_fund_cmd = 1000.0f;
+float sopwm_f_fund_cmd = 500.0f;
 static float sopwm_f_fund_applied = -1.0f;
 static uint16_t sopwm_N_applied = SOPWM_N_INIT;
 
