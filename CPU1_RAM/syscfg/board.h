@@ -184,7 +184,7 @@ extern "C"
 #define myDMA0_DEST_WRAPSIZE 65535U
 void myDMA0_init();
 #define myDMA1_SRCADDRESS 0 
-#define myDMA1_DESTADDRESS 17259 
+#define myDMA1_DESTADDRESS 17515 
 #define myDMA1_BASE DMA_CH2_BASE 
 #define myDMA1_BURSTSIZE 2U
 #define myDMA1_TRANSFERSIZE 100U
@@ -192,7 +192,7 @@ void myDMA0_init();
 #define myDMA1_DEST_WRAPSIZE 65535U
 void myDMA1_init();
 #define myDMA2_SRCADDRESS 0 
-#define myDMA2_DESTADDRESS 16747 
+#define myDMA2_DESTADDRESS 17003 
 #define myDMA2_BASE DMA_CH3_BASE 
 #define myDMA2_BURSTSIZE 2U
 #define myDMA2_TRANSFERSIZE 100U

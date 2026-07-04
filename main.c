@@ -119,7 +119,13 @@ static void sopwm_apply_param_change(void)
 
     sopwm_N_applied = sopwm_N_cmd;
 
-    SOPWM_ConfigPhaseBPolarity(myEPWM4_BASE);
+    /*
+     * Do NOT override EPWM4 dead-band polarity here.  Board_init() (SysConfig)
+     * sets EPWM4 RED Active Low, which produces the correct phase-B leg.
+     * Forcing RED/FED Active High on a param change flips B's high side and
+     * inverts the output (same signature as the phase-C inversion issue).
+     */
+    /* SOPWM_ConfigPhaseBPolarity(myEPWM4_BASE); */
 
     SOPWM_InitSchedule(sopwm_m_cmd, sopwm_N_cmd, SOPWM_TBPRD);
     sopwm_repoint_dma();

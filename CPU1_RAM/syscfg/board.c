@@ -173,7 +173,7 @@ void myDMA0_init(){
 }
 void myDMA1_init(){
     DMA_setEmulationMode(DMA_EMULATION_STOP);
-    DMA_configAddresses(myDMA1_BASE, (const void *)17259, (const void *)0);
+    DMA_configAddresses(myDMA1_BASE, (const void *)17515, (const void *)0);
     DMA_configBurst(myDMA1_BASE, 2U, 1, 2);
     DMA_configTransfer(myDMA1_BASE, 100U, 1, -2);
     DMA_configWrap(myDMA1_BASE, 200U, 0, 65535U, 0);
@@ -183,7 +183,7 @@ void myDMA1_init(){
 }
 void myDMA2_init(){
     DMA_setEmulationMode(DMA_EMULATION_STOP);
-    DMA_configAddresses(myDMA2_BASE, (const void *)16747, (const void *)0);
+    DMA_configAddresses(myDMA2_BASE, (const void *)17003, (const void *)0);
     DMA_configBurst(myDMA2_BASE, 2U, 1, 2);
     DMA_configTransfer(myDMA2_BASE, 100U, 1, -2);
     DMA_configWrap(myDMA2_BASE, 200U, 0, 65535U, 0);
@@ -223,7 +223,7 @@ void EPWM_init(){
     EPWM_setActionQualifierAction(myEPWM1_BASE, EPWM_AQ_OUTPUT_B, EPWM_AQ_OUTPUT_NO_CHANGE, EPWM_AQ_OUTPUT_ON_TIMEBASE_DOWN_CMPA);	
     EPWM_setActionQualifierAction(myEPWM1_BASE, EPWM_AQ_OUTPUT_B, EPWM_AQ_OUTPUT_TOGGLE, EPWM_AQ_OUTPUT_ON_TIMEBASE_UP_CMPB);	
     EPWM_setActionQualifierAction(myEPWM1_BASE, EPWM_AQ_OUTPUT_B, EPWM_AQ_OUTPUT_NO_CHANGE, EPWM_AQ_OUTPUT_ON_TIMEBASE_DOWN_CMPB);	
-    EPWM_setDeadBandDelayPolarity(myEPWM1_BASE, EPWM_DB_RED, EPWM_DB_POLARITY_ACTIVE_LOW);	
+    EPWM_setDeadBandDelayPolarity(myEPWM1_BASE, EPWM_DB_FED, EPWM_DB_POLARITY_ACTIVE_LOW);	
     EPWM_setDeadBandDelayMode(myEPWM1_BASE, EPWM_DB_RED, true);	
     EPWM_setRisingEdgeDelayCountShadowLoadMode(myEPWM1_BASE, EPWM_RED_LOAD_ON_CNTR_ZERO);	
     EPWM_disableRisingEdgeDelayCountShadowLoadMode(myEPWM1_BASE);	

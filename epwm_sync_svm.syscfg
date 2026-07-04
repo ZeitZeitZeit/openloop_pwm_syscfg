@@ -100,7 +100,7 @@ epwm1.epwmEventTrigger_interruptSource                         = "EPWM_INT_TBCTR
 epwm1.epwmEventTrigger_interruptEventCount                     = "1";
 epwm1.epwmEventTrigger_EPWM_SOC_A_triggerEventPrescalar        = "1";
 epwm1.$name                                                    = "myEPWM1";
-epwm1.epwmDeadband_polarityRED                                 = "EPWM_DB_POLARITY_ACTIVE_LOW";
+epwm1.epwmDeadband_polarityFED                                 = "EPWM_DB_POLARITY_ACTIVE_LOW";
 epwm1.epwm.epwm_aPin.$assign                                   = "GPIO0";
 epwm1.epwm.epwm_bPin.$assign                                   = "GPIO1";
 
