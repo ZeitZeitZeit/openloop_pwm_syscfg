@@ -139,8 +139,7 @@ typedef struct {
  *   buffer : 0 or 1 (double-buffer)
  *   cycle  : 0..sopwm_n_carr-1 (max SOPWM_N_CARR_MAX)
  *
- * Phase C may need EPWM dead-band RED polarity Active Low (invert HS) so the
- * rotated waveform matches A+240 deg — see phase_pulse_sim.py / SysConfig myEPWM2.
+ * Phase C needs EPWM2 dead-band RED = Active Low (see SOPWM_ConfigPhaseCPolarity).
  * DMA source address for phase A = &sopwm_sched[0][sopwm_sched_active][0]
  * Allocated in DMA-accessible RAM (see #pragma DATA_SECTION in sopwm.c).
  */
@@ -149,7 +148,7 @@ extern SOPWM_CycleCmp_t  sopwm_sched[3][2][SOPWM_N_CARR_MAX];
 /* Runtime timing — derived from sopwm_f_fund_hz by SOPWM_SetFundamentalHz() */
 extern float             sopwm_f_fund_hz;
 extern uint16_t          sopwm_n_carr;
-extern uint16_t          sopwm_mid_slot_a;
+extern uint16_t          sopwm_mid_slot_a;   /* carrier slot containing 180 deg */
 extern uint16_t          sopwm_phase_b_offset;
 extern uint16_t          sopwm_phase_c_offset;
 
@@ -184,9 +183,28 @@ uint16_t SOPWM_SetFundamentalHz(float f_fund);
  * Set DMA transferSize = sopwm_n_carr bursts/slot and
  * srcWrapSize = 2 * sopwm_n_carr bursts (matches SysConfig layout).
  * Does not stop/start channels — caller must stop DMA before changing
- * timing at runtime, then repoint addresses and restart.
+ * timing at runtime, soft-reset each channel, repoint addresses, restart.
  */
 void SOPWM_ReconfigDma(uint32_t dma0Base, uint32_t dma1Base, uint32_t dma2Base);
+
+/*
+ * SOPWM_ConfigPhaseCPolarity
+ *
+ * Phase C is a slot-rotated copy of closed phase A.  A 240 deg lag via rotation
+ * inverts the unipolar leg waveform (anti-correlated vs A+240 deg).  EPWM2
+ * dead-band RED must be Active Low to flip the high-side output.  Call after
+ * Board_init() and whenever timing is re-applied (n_carr change).
+ */
+void SOPWM_ConfigPhaseCPolarity(uint32_t epwm2Base);
+
+/*
+ * SOPWM_ConfigPhaseBPolarity
+ *
+ * Force EPWM4 dead-band to non-inverted (Active High).  Phase B uses
+ * off_b=(2*n+1)/3; do not apply RED Active Low here — that is for phase A
+ * only.  Phase C invert stays on EPWM2 FED Active Low.
+ */
+void SOPWM_ConfigPhaseBPolarity(uint32_t epwm4Base);
 
 /*
  * SOPWM_InitSchedule
@@ -194,8 +212,8 @@ void SOPWM_ReconfigDma(uint32_t dma0Base, uint32_t dma1Base, uint32_t dma2Base);
  * One-time startup call: populates BOTH double-buffers with the same
  * m / N / tbprd so the DMA has valid data from the very first carrier
  * cycle.  Sets sopwm_sched_active = 0 and leaves sopwm_sched_next = 1
- * ready for the first main-loop rebuild.  Do NOT call CommitSchedule
- * after this — no swap is needed.
+ * ready for the first main-loop rebuild.  Resets double-buffer state and
+ * sets sopwm_sched_active = 0.  Caller should repoint DMA to buffer 0.
  *
  *   m      - initial modulation index [0.01, 1.00]
  *   N      - pulse number (7, 9, 11, 13 or 15)

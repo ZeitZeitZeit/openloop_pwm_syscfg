@@ -702,7 +702,11 @@ uint16_t SOPWM_SetFundamentalHz(float f_fund)
     sopwm_n_carr         = n_new;
     span_deg             = 360.0f / (float)n_new;
     sopwm_cycle_span_deg = span_deg;
-    sopwm_mid_slot_a     = n_new / 2U;
+    /* Slot whose span contains 180° (toggle counts computed in closure). */
+    sopwm_mid_slot_a     = (uint16_t)(180.0f / span_deg);
+    if (sopwm_mid_slot_a >= n_new) {
+        sopwm_mid_slot_a = n_new - 1U;
+    }
     /* B[k]=A[(k+off_b)%N] lags A by 120°; C lags by 240° (integer round) */
     sopwm_phase_b_offset = (uint16_t)(((uint32_t)n_new * 2U) + 1U) / 3U;
     sopwm_phase_c_offset = (uint16_t)(((uint32_t)n_new) + 1U) / 3U;
@@ -721,10 +725,41 @@ void SOPWM_ReconfigDma(uint32_t dma0Base, uint32_t dma1Base, uint32_t dma2Base)
     wrap_bursts = (uint32_t)sopwm_n_carr * 2U;
 
     for (i = 0U; i < 3U; i++) {
+        /*
+         * Soft-reset clears burst/transfer counters. Required when n_carr
+         * changes (f_fund change); shadow-only configTransfer is not enough.
+         */
+        DMA_triggerSoftReset(bases[i]);
         DMA_configTransfer(bases[i], (uint32_t)sopwm_n_carr, 1, -2);
         /* Match SysConfig/board.c: src wrap step 0, dest wrap disabled */
         DMA_configWrap(bases[i], wrap_bursts, 0, 65535U, 0);
+        DMA_enableTrigger(bases[i]);
     }
+}
+
+void SOPWM_ConfigPhaseCPolarity(uint32_t epwm2Base)
+{
+    /*
+     * Rotated phase C is inverted vs the desired A+240 deg leg voltage.
+     * SysConfig sets EPWM2 FED Active Low; leave untouched when scope is OK.
+     */
+    (void)epwm2Base;
+}
+
+void SOPWM_ConfigPhaseBPolarity(uint32_t epwm4Base)
+{
+    /*
+     * B[k]=A[(k+off_b)%n], off_b=(2*n+1)/3 → 120 deg lag without leg inversion.
+     * RED Active Low (phase A / manual SysConfig on EPWM4) flips B ~180 deg vs C;
+     * n_carr=100 @ 500 Hz then looks reversed while n_carr=50 can look OK.
+     * C keeps FED Active Low on EPWM2 only.
+     */
+    EALLOW;
+    EPWM_setDeadBandDelayPolarity(epwm4Base, EPWM_DB_RED,
+                                  EPWM_DB_POLARITY_ACTIVE_HIGH);
+    EPWM_setDeadBandDelayPolarity(epwm4Base, EPWM_DB_FED,
+                                  EPWM_DB_POLARITY_ACTIVE_HIGH);
+    EDIS;
 }
 
 /*
@@ -769,27 +804,78 @@ static void sopwm_bin_lut(
 }
 
 /*
- * sopwm_frame_closure
- *
- * Force a toggle at the phase's 180° slot (cmpa = 0 at slot leading edge),
- * then close 360° = 0° when the toggle count is odd.
+ * sopwm_insert_counts — place one compare event in a carrier slot (cmpa < cmpb).
  */
-static void sopwm_frame_closure(
+static void sopwm_insert_counts(
+        SOPWM_CycleCmp_t *slot,
+        uint16_t          counts)
+{
+    if (slot->cmpa == SOPWM_CMP_OFF) {
+        slot->cmpa = counts;
+    } else if (slot->cmpb == SOPWM_CMP_OFF) {
+        if (counts < slot->cmpa) {
+            slot->cmpb = slot->cmpa;
+            slot->cmpa = counts;
+        } else {
+            slot->cmpb = counts;
+        }
+    }
+}
+
+/*
+ * sopwm_force_halfwave_toggle
+ *
+ * Insert the half-wave symmetry toggle at exactly 180° electrical.
+ * n/2 slot leading edge is only 180° when n_carr is even; odd n_carr
+ * (e.g. 63 @ 800 Hz) needs a non-zero count within the mid slot.
+ */
+static void sopwm_force_halfwave_toggle(
         SOPWM_CycleCmp_t *tbl,
-        uint16_t          mid_slot,
         uint16_t          tbprd)
 {
-    uint16_t i, n_toggles;
+    const float mid_deg = 180.0f;
+    uint16_t    mid_slot;
+    uint16_t    mid_counts;
+    float       local;
 
+    mid_slot = (uint16_t)(mid_deg / sopwm_cycle_span_deg);
     if (mid_slot >= sopwm_n_carr) {
         mid_slot = sopwm_n_carr - 1U;
     }
 
-    if (tbl[mid_slot].cmpa == SOPWM_CMP_OFF) {
-        tbl[mid_slot].cmpa = 0U;
-    } else if (tbl[mid_slot].cmpb == SOPWM_CMP_OFF) {
-        tbl[mid_slot].cmpb = 0U;
+    local = mid_deg - (float)mid_slot * sopwm_cycle_span_deg;
+    mid_counts = (uint16_t)((local / sopwm_cycle_span_deg) * (float)tbprd + 0.5f);
+    if (mid_counts >= tbprd) {
+        mid_counts = tbprd - 1U;
     }
+
+    if (mid_counts == 0U) {
+        if (tbl[mid_slot].cmpa == SOPWM_CMP_OFF) {
+            tbl[mid_slot].cmpa = 0U;
+        } else if (tbl[mid_slot].cmpa != 0U && tbl[mid_slot].cmpb == SOPWM_CMP_OFF) {
+            tbl[mid_slot].cmpb = tbl[mid_slot].cmpa;
+            tbl[mid_slot].cmpa = 0U;
+        } else if (tbl[mid_slot].cmpb == SOPWM_CMP_OFF) {
+            tbl[mid_slot].cmpb = 0U;
+        }
+    } else {
+        sopwm_insert_counts(&tbl[mid_slot], mid_counts);
+    }
+}
+
+/*
+ * sopwm_frame_closure
+ *
+ * Force a toggle at exactly 180° electrical, then close 360° = 0° when
+ * the toggle count is odd.
+ */
+static void sopwm_frame_closure(
+        SOPWM_CycleCmp_t *tbl,
+        uint16_t          tbprd)
+{
+    uint16_t i, n_toggles;
+
+    sopwm_force_halfwave_toggle(tbl, tbprd);
 
     n_toggles = 0U;
     for (i = 0U; i < sopwm_n_carr; i++) {
@@ -835,19 +921,23 @@ static void sopwm_copy_rotated_phase(
 
 void SOPWM_InitSchedule(float m, uint16_t N, uint16_t tbprd)
 {
-    uint16_t saved_next;
+    /*
+     * Always populate BOTH buffers explicitly.  Do not restore
+     * sopwm_sched_next — after runtime swaps it may be 0, which would
+     * build the same buffer twice and leave the other stale.
+     */
+    sopwm_sched_active  = 0U;
+    sopwm_sched_next    = 0U;
+    sopwm_swap_pending  = 0U;
+    sopwm_cycle_idx     = 0U;
 
-    /* Build into buffer 0 first */
-    saved_next         = sopwm_sched_next;
-    sopwm_sched_next   = 0U;
     SOPWM_BuildSchedule(m, N, tbprd);
 
-    /* Restore and build into buffer 1 */
-    sopwm_sched_next   = saved_next;   /* = 1 at startup */
+    sopwm_sched_next = 1U;
     SOPWM_BuildSchedule(m, N, tbprd);
 
-    /* Both buffers valid; active=0 is correct for the DMA SRC set in main. */
-    sopwm_init_done = 1U;  /* DEBUG: confirms InitSchedule completed */
+    sopwm_sched_next = 1U;   /* inactive buffer for next BuildSchedule */
+    sopwm_init_done  = 1U;
 }
 
 void SOPWM_BuildSchedule(float m, uint16_t N, uint16_t tbprd)
@@ -881,8 +971,7 @@ void SOPWM_BuildSchedule(float m, uint16_t N, uint16_t tbprd)
      * B/C: rotated copies of closed A (mid toggles land at 300° / 60°). */
     sopwm_bin_lut(all_angles, total, tbprd,
                   sopwm_sched[0][sopwm_sched_next]);
-    sopwm_frame_closure(sopwm_sched[0][sopwm_sched_next],
-                        sopwm_mid_slot_a, tbprd);
+    sopwm_frame_closure(sopwm_sched[0][sopwm_sched_next], tbprd);
     sopwm_copy_rotated_phase(1U, 0U, sopwm_phase_b_offset, sopwm_sched_next);
     sopwm_copy_rotated_phase(2U, 0U, sopwm_phase_c_offset, sopwm_sched_next);
 }
