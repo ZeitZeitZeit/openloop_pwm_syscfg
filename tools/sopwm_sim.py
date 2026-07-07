@@ -229,14 +229,18 @@ def _frame_closure(tbl: list[dict], span: float, n_carr: int, tbprd: int) -> Non
     )
 
     if n_toggles & 1:
-        s0 = tbl[0]
-        if s0["cmpa"] == CMP_OFF:
-            s0["cmpa"] = 0
-        elif s0["cmpa"] != 0 and s0["cmpb"] == CMP_OFF:
-            s0["cmpb"] = s0["cmpa"]
-            s0["cmpa"] = 0
-        elif tbl[n_carr - 1]["cmpb"] == CMP_OFF:
-            tbl[n_carr - 1]["cmpb"] = tbprd - 1
+        # Close the odd toggle at the PERIOD END (~360 deg), never at slot 0
+        # counter 0, so slot 0 stays event-free for the AQ re-anchor SW force.
+        k = n_carr
+        while k > 0:
+            k -= 1
+            if (tbl[k]["cmpb"] == CMP_OFF and tbl[k]["cmpa"] != CMP_OFF
+                    and tbl[k]["cmpa"] < tbprd - 1):
+                tbl[k]["cmpb"] = tbprd - 1
+                break
+            if tbl[k]["cmpa"] == CMP_OFF:
+                tbl[k]["cmpa"] = tbprd - 1
+                break
 
 
 def _copy_rotated_phase(src: list[dict], offset: int, n_carr: int) -> list[dict]:

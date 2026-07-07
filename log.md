@@ -121,3 +121,191 @@ For T_c: Phase C is OFF during both active vectors, so T_c = d_0/2.
 - [ ] DMA CH3 trigger: EPWM7SOCA → EPWM1SOCA
 - [ ] Optionally disable SOC-A on EPWM4/EPWM7
 - [ ] Optionally fix SYNC inputs to EPWM1SYNCOUT
+
+## 2026-07-07: SOPWM Parameter-Change Bugs — N-Change Ignored & Phase-B Inversion
+
+This entry documents two distinct, high-impact defects that appeared when changing
+SOPWM parameters *on the fly* (i.e. after cold start, while the modulator is already
+running). Both stem from the same architectural reality: the output stage uses a
+**toggle-only Action Qualifier** whose final pin level is *history-dependent*, and the
+waveform is streamed from a **DMA table whose read pointer and burst counters are not
+implicitly reset** when a channel is stopped. A change to either `N` (pulse number) or
+`f` (fundamental frequency) must therefore reproduce the *exact* cold-start conditions,
+or the hardware latches into a wrong state.
+
+### Background: why the output is history-dependent
+
+The AQ for `EPWM_AQ_OUTPUT_A` is configured **TOGGLE-only**:
+
+- `ZERO`  → `NO_CHANGE`
+- `PERIOD` → `NO_CHANGE`
+- `UP_CMPA` → `TOGGLE`
+- `UP_CMPB` → `TOGGLE`
+
+There is **no absolute level action** (no forced HIGH at ZERO / LOW at PERIOD). The pin
+level at any instant is the running XOR of every toggle seen since power-up. This is
+efficient (a single compare event flips the state, which is exactly what an SOPWM edge
+table wants) but it means:
+
+- The **start-of-cycle level** is whatever the previous cycle left behind.
+- Any change that alters the **parity** (odd/even count) of toggles inside a fundamental
+  period will *invert the entire next cycle*.
+- Phase B is generated on **EPWM4 with RED active-low dead-band, which is inverting**
+  (AQ LOW → pin HIGH). So a parity/anchor error on B is doubly visible.
+
+Cold start is the known-good reference: all three AQ latches are LOW, all DMA burst /
+transfer counters are 0, and every channel's read pointer sits at table slot 0. **The
+correct design rule is: every parameter change must replicate cold start exactly.**
+
+---
+
+### Bug 1 — Changing `N_cmd` had no effect (output stuck at the default N=15)
+
+#### Problem
+Commanding a new pulse number (e.g. `N_cmd = 7`) while running did nothing: the scope
+kept showing the previously-applied pattern (the N=15 default). Only a full reset /
+re-flash would pick up a new `N`. Changing `f` *did* take effect — which was the clue.
+
+#### Root Cause
+The parameter-apply path only performed a **full DMA re-initialisation when the frequency
+changed**. For an N-only change the code merely did `DMA_stopChannel()` →
+`DMA_startChannel()`.
+
+`DMA_stopChannel()` **preserves** the channel's burst-count and transfer-count registers
+— it halts the channel but does *not* rewind it. On restart the DMA therefore resumed
+**mid-table**, at whatever slot it happened to be stopped on, and continued streaming the
+*old* table image. Because the new schedule is written assuming playback begins at slot 0,
+the freshly-built N=7 table was never actually presented from its start; the old N=15
+pattern kept cycling.
+
+Only `SOPWM_ReconfigDma()` — which internally issues `DMA_triggerSoftReset()` — clears the
+burst / transfer counters and forces the read pointer back to slot 0. That call lived
+*inside* the `if (f changed)` branch, so N-only changes skipped it.
+
+#### Fix
+Call `SOPWM_ReconfigDma()` **unconditionally** on every parameter change, so the DMA is
+always soft-reset and realigned to slot 0 regardless of whether `N`, `f`, or both changed.
+`SOPWM_SetFundamentalHz()` (which only needs to recompute `n_carr`/rotation offsets when
+`f` moves) stays inside the frequency branch.
+
+```c
+/* main.c : sopwm_apply_param_change() */
+if (sopwm_f_fund_cmd != sopwm_f_fund_applied) {
+    SOPWM_SetFundamentalHz(sopwm_f_fund_cmd);   /* f-only work */
+    sopwm_f_fund_applied = sopwm_f_fund_cmd;
+}
+/* ALWAYS realign the DMA: soft-reset clears burst/transfer counters
+   and rewinds every channel to table slot 0 (cold-start replica). */
+SOPWM_ReconfigDma(myDMA0_BASE, myDMA1_BASE, myDMA2_BASE);
+```
+
+---
+
+### Bug 2 — Phase-B inverted after `f = 500 → 1000` Hz
+
+#### Problem
+After changing the fundamental from 500 Hz to 1000 Hz, phase B came up **inverted** for
+the remainder of the run. The initial hypothesis was that `n_carr` parity (odd vs even
+number of carriers per fundamental) flipped the B start level.
+
+#### Investigation — the odd/even hypothesis was disproved
+A **firmware-matched Python simulator** (`tools/sopwm_sim.py`) was used. It loads the
+angle LUTs directly out of `sopwm.c` and reproduces every build step bit-for-bit:
+quarter-wave expansion → binary LUT → forced 180° half-wave toggle → frame closure →
+slot-rotated B/C copies.
+
+- `f = 500 Hz` → `n_carr = round(50000/500) = 100` (even)
+- `f = 1000 Hz` → `n_carr = round(50000/1000) = 50` (even)
+
+**Both are even**, so parity never actually changed. The simulator further showed the
+computed **B start-level parity is LOW (0) at *both* frequencies** — i.e. B should *not*
+have inverted from a frequency change at all. The real defect was elsewhere.
+
+#### Root Cause
+The original `sopwm_frame_closure()` (which appends a final toggle to guarantee an even
+total toggle count so the waveform closes cleanly each fundamental) placed that closing
+toggle at **slot 0 with `cmpa = 0`**. A compare event at counter 0 fires on the *exact
+fundamental boundary*, which **races the per-cycle software re-anchor force** that we
+issue at the top of each cycle to reset the AQ latch to LOW.
+
+Depending on the precise ordering of (a) the SW force-LOW and (b) the CTR=0 / CMPA=0
+hardware toggle, phase B could latch one extra flip and stay inverted. The simulator
+confirmed the hazard was specific to A's slot-0 event (`cmpa = 0` at slot 0); the rotated
+B/C copies inherited a boundary-adjacent toggle that collided with the anchor.
+
+#### Fix
+Two coordinated changes:
+
+1. **Relocate the closure toggle to the period end** instead of slot 0. The new
+   `sopwm_frame_closure()` scans backward and places the closing toggle at
+   `TBPRD - 1` (end of the last carrier), never at slot 0 / `cmpa = 0`. This keeps the
+   fundamental boundary event-free so nothing races the anchor.
+
+```c
+/* sopwm.c : sopwm_frame_closure() — place closing toggle at PERIOD END */
+uint16_t k = sopwm_n_carr;
+while (k-- > 0U) {
+    if (cmpb[k] == OFF && cmpa[k] != OFF && cmpa[k] < (tbprd - 1U)) {
+        cmpb[k] = tbprd - 1U;   /* second toggle at end of slot */
+        break;
+    }
+    if (cmpa[k] == OFF) {
+        cmpa[k] = tbprd - 1U;   /* single closing toggle at end of slot */
+        break;
+    }
+}
+```
+
+2. **Frozen-window force-LOW cold-start replica.** After the counters are zeroed
+   (`EPWM_setTimeBaseCounter(...,0U)`, `sopwm_cycle_idx = 0`) and **before** TBCLK is
+   re-synced, each phase's AQ latch is explicitly driven LOW:
+
+```c
+/* main.c : after zeroing counters, before TBCLKSYNC enable */
+EPWM_setActionQualifierSWAction(base, EPWM_AQ_OUTPUT_A, EPWM_AQ_OUTPUT_LOW);
+EPWM_forceActionQualifierSWAction(base, EPWM_AQ_OUTPUT_A);   /* base = EPWM1, EPWM4, EPWM2 */
+```
+
+This guarantees all three latches start LOW (exactly like cold start); the inverting RED
+dead-band on B then maps that LOW to the correct pin polarity. The waveform-level
+`SOPWM_ConfigPhaseBPolarity()` hack is no longer needed and remains **commented out**.
+
+#### Verification (simulator — hardware scope check still pending)
+Re-running `tools/sopwm_sim.py` after the fix confirmed, for `N = 7` and `N = 15` at both
+`f = 500` and `f = 1000`:
+
+- `A_total` toggle count stays **even** (14 for N7, 30 for N15) → waveform closes cleanly.
+- **Slot 0 is event-free** for all three phases (A/C had no slot-0 event; A's first event
+  moved to slot 2 at f=500 / slot 1 at f=1000).
+- `cmpa == 0` now occurs **only at the mid-slot** (50 for f=500, 25 for f=1000) — a
+  mid-fundamental 180° toggle, which is *not* on a boundary and does not race the anchor.
+- Phase-B start level is LOW at both frequencies.
+
+---
+
+### Changes Made (both bugs)
+- **`main.c`** — `SOPWM_ReconfigDma()` now called **unconditionally** on every parameter
+  change (moved out of the `f`-changed branch). Added the frozen-window force-LOW
+  re-anchor for EPWM1/EPWM4/EPWM2 after zeroing counters and before `TBCLKSYNC`.
+  `SOPWM_ConfigPhaseBPolarity()` left commented out.
+- **`pwm/sopwm/sopwm.c`** — `sopwm_frame_closure()` rewritten to place the odd-parity
+  closing toggle at **period end** (`TBPRD-1`), never at slot 0 / `cmpa = 0`.
+- **`tools/sopwm_sim.py`** — `_frame_closure()` updated to mirror the new period-end
+  placement so the firmware-matched simulator stays authoritative.
+
+### Key Lessons
+- **Cold start is the ground truth.** Every parameter change must replicate it exactly:
+  all AQ latches LOW, all DMA counters 0, all read pointers at slot 0.
+- **`DMA_stopChannel()` does not rewind the channel.** Burst/transfer counters survive a
+  stop; only a soft reset (`DMA_triggerSoftReset`, inside `SOPWM_ReconfigDma`) realigns to
+  slot 0.
+- **Toggle-only AQ makes start-level parity fragile.** Never place a compare event on the
+  fundamental boundary (`cmpa = 0` at slot 0) — it races the per-cycle SW re-anchor. Keep
+  closure toggles at the period end.
+- The `n_carr` odd/even theory was a red herring — both test frequencies yield even
+  `n_carr`; a firmware-matched simulator disproved it and pinned the true cause.
+
+### Pending Hardware Verification
+- [ ] Scope-confirm N changes take effect live (e.g. N=15 → N=7 → N=11).
+- [ ] Scope-confirm phase B stays upright across f = 500 → 1000 → 500 Hz.
+- [ ] Confirm no glitch on the fundamental boundary after the force-LOW re-anchor.

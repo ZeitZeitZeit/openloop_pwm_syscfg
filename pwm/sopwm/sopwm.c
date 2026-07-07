@@ -888,13 +888,28 @@ static void sopwm_frame_closure(
     }
 
     if ((n_toggles & 1U) != 0U) {
-        if (tbl[0].cmpa == SOPWM_CMP_OFF) {
-            tbl[0].cmpa = 0U;
-        } else if (tbl[0].cmpa != 0U && tbl[0].cmpb == SOPWM_CMP_OFF) {
-            tbl[0].cmpb = tbl[0].cmpa;
-            tbl[0].cmpa = 0U;
-        } else if (tbl[sopwm_n_carr - 1U].cmpb == SOPWM_CMP_OFF) {
-            tbl[sopwm_n_carr - 1U].cmpb = tbprd - 1U;
+        /*
+         * Close the odd toggle at the PERIOD END (~360 deg), never at slot 0
+         * counter 0.  A toggle at slot 0 / counter 0 sits exactly on the
+         * fundamental boundary and races the one-time SW force used to
+         * re-anchor the AQ latch on a param change (sopwm_apply_param_change):
+         * the force and the counter-0 toggle would fight and can invert the
+         * leg.  Placing it at the last usable slot keeps slot 0 event-free so
+         * the re-anchor is deterministic, while still giving an even toggle
+         * count (the leg returns to its LOW start each fundamental).
+         */
+        uint16_t k = sopwm_n_carr;
+        while (k-- > 0U) {
+            if ((tbl[k].cmpb == SOPWM_CMP_OFF) &&
+                (tbl[k].cmpa != SOPWM_CMP_OFF) &&
+                (tbl[k].cmpa < (tbprd - 1U))) {
+                tbl[k].cmpb = tbprd - 1U;
+                break;
+            }
+            if (tbl[k].cmpa == SOPWM_CMP_OFF) {
+                tbl[k].cmpa = tbprd - 1U;
+                break;
+            }
         }
     }
 }

@@ -113,11 +113,20 @@ static void sopwm_apply_param_change(void)
 
     if (sopwm_f_fund_cmd != sopwm_f_fund_applied) {
         SOPWM_SetFundamentalHz(sopwm_f_fund_cmd);
-        SOPWM_ReconfigDma(myDMA0_BASE, myDMA1_BASE, myDMA2_BASE);
         sopwm_f_fund_applied = sopwm_f_fund_cmd;
     }
 
     sopwm_N_applied = sopwm_N_cmd;
+
+    /*
+     * Always soft-reset + realign all three DMA channels, even for an N-only
+     * change.  DMA_stopChannel() preserves the burst/transfer counters, so a
+     * plain stop->start resumes mid-table and the freshly built schedule never
+     * starts from slot 0 (symptom: changing N does nothing, the old N keeps
+     * playing).  SOPWM_ReconfigDma() issues DMA_triggerSoftReset() which clears
+     * those counters so the carrier realigns to schedule slot 0.
+     */
+    SOPWM_ReconfigDma(myDMA0_BASE, myDMA1_BASE, myDMA2_BASE);
 
     /*
      * Do NOT override EPWM4 dead-band polarity here.  Board_init() (SysConfig)
@@ -135,6 +144,27 @@ static void sopwm_apply_param_change(void)
     EPWM_setTimeBaseCounter(myEPWM4_BASE, 0U);
     EPWM_setTimeBaseCounter(myEPWM2_BASE, 0U);
     sopwm_cycle_idx = 0U;
+
+    /*
+     * Re-anchor the Action-Qualifier output latch to the cold-start level.
+     *
+     * OUTPUT_A is TOGGLE-only (NO_CHANGE at ZERO/PERIOD), so a leg has no
+     * absolute level reference: after a DMA stop/reconfig the latch can be
+     * left HIGH, which inverts the whole fundamental (the phase-B symptom).
+     *
+     * Power-on resets every AQ latch LOW and that state is known-good for
+     * all N/f.  With the time-base frozen (TBCLKSYNC disabled) and counters
+     * at 0, a one-time SW force to LOW reproduces cold-start bit-for-bit
+     * before the carrier resumes, so slot 0 always starts from LOW and the
+     * dead band maps it to the correct pin polarity per leg
+     * (A/C non-inverting -> pin LOW, B inverting -> pin HIGH).
+     */
+    EPWM_setActionQualifierSWAction(myEPWM1_BASE, EPWM_AQ_OUTPUT_A, EPWM_AQ_OUTPUT_LOW);
+    EPWM_forceActionQualifierSWAction(myEPWM1_BASE, EPWM_AQ_OUTPUT_A);
+    EPWM_setActionQualifierSWAction(myEPWM4_BASE, EPWM_AQ_OUTPUT_A, EPWM_AQ_OUTPUT_LOW);
+    EPWM_forceActionQualifierSWAction(myEPWM4_BASE, EPWM_AQ_OUTPUT_A);
+    EPWM_setActionQualifierSWAction(myEPWM2_BASE, EPWM_AQ_OUTPUT_A, EPWM_AQ_OUTPUT_LOW);
+    EPWM_forceActionQualifierSWAction(myEPWM2_BASE, EPWM_AQ_OUTPUT_A);
 
     DMA_startChannel(myDMA0_BASE);
     DMA_startChannel(myDMA1_BASE);
